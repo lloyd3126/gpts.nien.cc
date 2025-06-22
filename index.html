@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatGPT 提示詞連結生成器</title>
+    <!-- Bootstrap CSS CDN -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding-bottom: 100px;
+            /* 新增的底部留白 */
+        }
+
+        .prompt-card {
+            flex: 1 1 calc(33.333% - 1rem);
+            /* 預設三欄，考慮 gap */
+            min-width: 280px;
+            /* 最小寬度，防止過窄 */
+            max-width: calc(33.333% - 1rem);
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            cursor: pointer;
+            background-color: #fff;
+            display: flex;
+            /* 確保 card-body 填滿空間 */
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .prompt-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+
+        .prompt-card .card-body {
+            flex-grow: 1;
+            /* 讓 card-body 佔滿剩餘空間 */
+            display: flex;
+            justify-content: center;
+            /* 垂直置中 */
+            align-items: center;
+            /* 水平置中 */
+            padding: 1.5rem;
+            /* 增加點擊區域的內邊距 */
+            text-decoration: none;
+            /* 確保父元素本身沒有文字裝飾 */
+        }
+
+        /* 確保連結在任何狀態下都沒有底線，並繼承父元素樣式 */
+        .prompt-card .card-body a,
+        .prompt-card .card-body a:hover,
+        .prompt-card .card-body a:focus {
+            color: inherit;
+            /* 繼承文字顏色 */
+            display: block;
+            /* 讓整個 card-body 內的連結區域可點擊 */
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            /* 這裡不再需要 text-decoration: none; 因為它會從父層繼承 */
+        }
+
+        .prompt-card .card-title {
+            margin-bottom: 0;
+            font-weight: bold;
+            font-size: 1.25rem;
+        }
+
+        /* 手機螢幕切換為單欄 */
+        @media (max-width: 767.98px) {
+            .prompt-card {
+                flex: 1 1 100%;
+                max-width: 100%;
+            }
+        }
+
+        .modal-body pre {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 1rem;
+            border-radius: 0.25rem;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 300px;
+            /* 限制 Modal 內提示詞內容的高度 */
+            overflow-y: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">ChatGPT 提示詞連結生成器</h1>
+        <div class="mb-3">
+            <label for="promptTextarea" class="form-label">請輸入您的提示詞：</label>
+            <textarea class="form-control" id="promptTextarea" rows="5" oninput="updateLink()"
+                placeholder="例如：寫一首關於貓的詩"></textarea>
+        </div>
+        <a id="chatgptLink" href="http://chatgpt.com/?q=" target="_blank" class="btn btn-primary mb-4">
+            在 ChatGPT 裡使用此提示詞
+        </a>
+
+        <hr class="my-4">
+
+        <h2 class="mb-3">常用提示詞範例</h2>
+        <div class="d-flex flex-wrap gap-4" id="promptCardsContainer">
+            <!-- 提示詞卡片將由 JavaScript 動態生成 -->
+        </div>
+    </div>
+
+    <!-- The Modal -->
+    <div class="modal fade" id="promptModal" tabindex="-1" aria-labelledby="promptModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="promptModalLabel">編輯提示詞</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="modalPromptTitle" class="form-label">提示詞標題：</label>
+                        <input type="text" class="form-control" id="modalPromptTitle"
+                            oninput="savePromptToLocalStorage()">
+                    </div>
+                    <div class="mb-3">
+                        <label for="modalPromptTextarea" class="form-label">提示詞內容：</label>
+                        <textarea class="form-control" id="modalPromptTextarea" rows="10"
+                            oninput="savePromptToLocalStorage()"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="resetPromptBtn">重置此提示詞</button>
+                    <button type="button" class="btn btn-primary" id="useGptsFromModalBtn">在 ChatGPT 裡使用此提示詞</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle with Popper CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 原始預設提示詞資料
+        const defaultPrompts = [
+            { id: 'prompt-email-assistant', title: '專業郵件助理', content: '你是一個專業的郵件助理，專門協助使用者撰寫、潤飾和回覆各類型的商務郵件，確保語氣專業且表達清晰。你會根據使用者提供的關鍵資訊，快速生成符合情境的草稿。接下來請你跟使用者說明如何跟你互動。' },
+            { id: 'prompt-recipe-generator', title: '快速食譜生成器', content: '你是一個快速食譜生成器，能根據使用者提供的食材、烹飪時間和偏好，快速生成簡單美味的食譜，特別擅長五分鐘內完成的料理。接下來請你跟使用者說明如何跟你互動。' },
+            { id: 'prompt-science-explainer', title: '科普知識解說員', content: '你是一個科普知識解說員，擅長將複雜的科學概念（如量子物理、宇宙學）用簡單易懂的語言解釋給非專業人士，並樂於回答相關問題。接下來請你跟使用者說明如何跟你互動。' },
+            { id: 'prompt-travel-planner', title: '旅行行程規劃師', content: '你是一個旅行行程規劃師，能根據使用者的目的地、天數、預算、喜好和交通方式，量身打造詳細且具吸引力的旅行行程。接下來請你跟使用者說明如何跟你互動。' },
+            { id: 'prompt-home-fitness-coach', title: '居家健身教練', content: '你是一個居家健身教練，專為初學者設計無需器材或僅需簡單器材的居家健身菜單，並提供動作指導和注意事項。接下來請你跟使用者說明如何跟你互動。' },
+            { id: 'prompt-language-tutor', title: '語言學習導師', content: '你是一個語言學習導師，能為使用者提供從零開始學習新語言的有效策略、資源推薦和實用練習方法。接下來請你跟使用者說明如何跟你互動。' },
+            { id: 'prompt-creative-writer', title: '創意寫作夥伴', content: '你是一個創意寫作夥伴，能幫助使用者構思、撰寫詩歌、短篇故事或任何創意文本，提供靈感和文字潤飾的建議。接下來請你跟使用者說明如何跟你互動。' },
+            { id: 'prompt-copywriter', title: '產品文案撰寫師', content: '你是一個產品文案撰寫師，專門為各類產品撰寫吸引人的描述、賣點和行銷文案，幫助使用者突出產品特色。接下來請你跟使用者說明如何跟你互動。' },
+            { id: 'prompt-interview-coach', title: '面試準備教練', content: '你是一個面試準備教練，能提供常見面試問題的有效應對策略、範例回答和模擬練習，幫助使用者自信應對各種面試情境。接下來請你跟使用者說明如何跟你互動。' },
+            { id: 'prompt-tech-troubleshooter', title: '科技故障排除專家', content: '你是一個科技故障排除專家，能提供詳細的步驟和建議，幫助使用者解決常見的電子設備或網路連線問題。接下來請你跟使用者說明如何跟你互動。' }
+        ];
+
+        // 取得提示詞資料，優先從 localStorage 載入修改過的版本
+        function getPromptData(id) {
+            const defaultData = defaultPrompts.find(p => p.id === id);
+            const storedData = localStorage.getItem(`gpts_prompt_${id}`);
+            if (storedData) {
+                try {
+                    const parsedData = JSON.parse(storedData);
+                    // 確保 id 存在且與預期相符，避免資料損壞
+                    if (parsedData && parsedData.id === id) {
+                        return parsedData;
+                    }
+                } catch (e) {
+                    console.error("Error parsing localStorage data for", id, e);
+                    localStorage.removeItem(`gpts_prompt_${id}`); // 移除損壞資料
+                }
+            }
+            return defaultData;
+        }
+
+        // 將 Modal 中的內容儲存到 localStorage
+        function savePromptToLocalStorage() {
+            const modal = document.getElementById('promptModal');
+            const currentPromptId = modal.dataset.currentPromptId;
+            if (!currentPromptId) return;
+
+            const titleInput = document.getElementById('modalPromptTitle');
+            const textarea = document.getElementById('modalPromptTextarea');
+
+            const updatedData = {
+                id: currentPromptId,
+                title: titleInput.value,
+                content: textarea.value
+            };
+            localStorage.setItem(`gpts_prompt_${currentPromptId}`, JSON.stringify(updatedData));
+
+            // 同步更新主頁面卡片的標題顯示
+            const cardElement = document.querySelector(`.prompt-card[data-prompt-id="${currentPromptId}"]`);
+            if (cardElement) {
+                cardElement.querySelector('.card-title').textContent = titleInput.value;
+            }
+        }
+
+        // 重置 Modal 中的內容為預設值，並清除 localStorage 記錄
+        function resetPrompt() {
+            const modal = document.getElementById('promptModal');
+            const currentPromptId = modal.dataset.currentPromptId;
+            if (!currentPromptId) return;
+
+            const defaultData = defaultPrompts.find(p => p.id === currentPromptId);
+            if (defaultData) {
+                document.getElementById('modalPromptTitle').value = defaultData.title;
+                document.getElementById('modalPromptTextarea').value = defaultData.content;
+                localStorage.removeItem(`gpts_prompt_${currentPromptId}`); // 從 localStorage 移除修改記錄
+
+                // 同步更新主頁面卡片的標題顯示
+                const cardElement = document.querySelector(`.prompt-card[data-prompt-id="${currentPromptId}"]`);
+                if (cardElement) {
+                    cardElement.querySelector('.card-title').textContent = defaultData.title;
+                }
+            }
+        }
+
+        // 動態載入並建立提示詞卡片
+        function loadCards() {
+            const container = document.getElementById('promptCardsContainer');
+            container.innerHTML = ''; // 清空現有卡片
+
+            defaultPrompts.forEach(defaultPrompt => {
+                const currentData = getPromptData(defaultPrompt.id); // 取得當前（可能已修改）的資料
+
+                const card = document.createElement('div');
+                card.className = 'prompt-card';
+                card.dataset.promptId = currentData.id;
+
+                const link = document.createElement('a');
+                link.href = '#'; // 防止實際的連結導航
+                link.className = 'card-body'; // 使用 flexbox 樣式來置中內容
+                link.onclick = (e) => {
+                    e.preventDefault(); // 阻止預設連結行為
+                    openModal(currentData.id); // 開啟 Modal
+                };
+
+                const title = document.createElement('h5');
+                title.className = 'card-title';
+                title.textContent = currentData.title;
+
+                link.appendChild(title);
+                card.appendChild(link);
+                container.appendChild(card);
+            });
+        }
+
+        // 開啟 Modal 並載入提示詞內容
+        function openModal(promptId) {
+            const data = getPromptData(promptId);
+            if (!data) return;
+
+            const modal = document.getElementById('promptModal');
+            const modalTitleInput = document.getElementById('modalPromptTitle');
+            const modalTextarea = document.getElementById('modalPromptTextarea');
+
+            modalTitleInput.value = data.title;
+            modalTextarea.value = data.content;
+            modal.dataset.currentPromptId = promptId; // 在 Modal 上儲存當前提示詞的 ID
+
+            // 顯示 Modal
+            const bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
+        }
+
+        // 使用 Modal 中的提示詞內容開啟 ChatGPT
+        function openChatGptWithModalContent() {
+            const textarea = document.getElementById('modalPromptTextarea');
+            const encodedValue = encodeURIComponent(textarea.value);
+            const url = `http://chatgpt.com/?q=${encodedValue}`;
+            window.open(url, '_blank');
+        }
+
+        // 更新主頁面 ChatGPT 連結的 URL
+        function updateLink() {
+            const textarea = document.getElementById('promptTextarea');
+            const link = document.getElementById('chatgptLink');
+            const encodedValue = encodeURIComponent(textarea.value);
+            link.href = `http://chatgpt.com/?q=${encodedValue}`;
+        }
+
+        // 頁面載入時執行初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            loadCards(); // 載入並顯示卡片
+            updateLink(); // 初始化主頁面連結
+
+            // Modal 按鈕事件監聽器
+            document.getElementById('resetPromptBtn').addEventListener('click', resetPrompt);
+            document.getElementById('useGptsFromModalBtn').addEventListener('click', openChatGptWithModalContent);
+        });
+    </script>
+</body>
+
+</html>
