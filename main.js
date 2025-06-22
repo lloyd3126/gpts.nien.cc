@@ -254,7 +254,7 @@ function openModal(promptId) {
 
 function openChatGptWithModalContent() {
     const textarea = document.getElementById('modalPromptTextarea');
-    const encodedValue = encodeURIComponent(textarea.value);
+    const encodedValue = encodeURIComponent(textarea.value + '\n\n請說明如何使用這個提示詞。');
     const url = `http://chatgpt.com/?q=${encodedValue}`;
     window.open(url, '_blank');
 }
@@ -262,7 +262,7 @@ function openChatGptWithModalContent() {
 function updateLink() {
     const textarea = document.getElementById('promptTextarea');
     const link = document.getElementById('chatgptLink');
-    const encodedValue = encodeURIComponent(textarea.value);
+    const encodedValue = encodeURIComponent(textarea.value + '\n\n請說明如何使用這個提示詞。');
     link.href = `http://chatgpt.com/?q=${encodedValue}`;
 }
 
@@ -297,7 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const textarea = document.getElementById('modalPromptTextarea');
         if (textarea) {
             const encodedValue = encodeURIComponent(textarea.value);
-            const url = `chatwise://chat?instruction=${encodedValue}`;
+            const url = `chatwise://chat?instruction=${encodedValue}&input=請說明如何使用這個提示詞。`;
             window.open(url, '_blank');
         }
     });
