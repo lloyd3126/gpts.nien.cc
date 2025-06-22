@@ -11,17 +11,17 @@
 
 <body>
     <div class="container mt-5">
-        <h1 class="mb-4">提示詞</h1>
+        <h1 class="mb-4">提示詞 <span class="fs-6">｜ 陳重年 Chen Chung Nien</span></h1>
         <div class="mb-3">
             <label for="promptTextarea" class="form-label">請輸入您的提示詞：</label>
             <textarea class="form-control" id="promptTextarea" rows="5" oninput="updateLink()"
                 placeholder="例如：寫一首關於貓的詩"></textarea>
         </div>
-        <a id="chatgptLink" href="http://chatgpt.com/?q=" target="_blank" class="btn btn-primary mb-4">
+        <a id="chatgptLink" href="http://chatgpt.com/?q=" target="_blank" class="btn btn-primary">
             在 ChatGPT 裡使用此提示詞
         </a>
 
-        <div class="d-flex flex-wrap gap-3" id="promptCardsContainer">
+        <div id="promptCardsContainer">
         </div>
     </div>
 
