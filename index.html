@@ -4,14 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ChatGPT 提示詞連結生成器</title>
+    <title>提示詞｜陳重年 Chen Chung Nien</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
     <div class="container mt-5">
-        <h1 class="mb-4">ChatGPT 提示詞連結生成器</h1>
+        <h1 class="mb-4">提示詞</h1>
         <div class="mb-3">
             <label for="promptTextarea" class="form-label">請輸入您的提示詞：</label>
             <textarea class="form-control" id="promptTextarea" rows="5" oninput="updateLink()"
@@ -21,10 +21,7 @@
             在 ChatGPT 裡使用此提示詞
         </a>
 
-        <hr class="my-4">
-
-        <h2 class="mb-3">常用提示詞範例</h2>
-        <div class="d-flex flex-wrap gap-4" id="promptCardsContainer">
+        <div class="d-flex flex-wrap gap-3" id="promptCardsContainer">
         </div>
     </div>
 
@@ -38,18 +35,24 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label for="modalPromptTitle" class="form-label">提示詞標題：</label>
-                        <input type="text" class="form-control" id="modalPromptTitle"
-                            oninput="savePromptToLocalStorage()">
+                        <input type="text" class="form-control" id="modalPromptTitle">
                     </div>
                     <div class="mb-3">
                         <label for="modalPromptTextarea" class="form-label">提示詞內容：</label>
-                        <textarea class="form-control" id="modalPromptTextarea" rows="10"
-                            oninput="savePromptToLocalStorage()"></textarea>
+                        <textarea class="form-control" id="modalPromptTextarea" rows="10"></textarea>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" id="resetPromptBtn">重置此提示詞</button>
-                    <button type="button" class="btn btn-primary" id="useGptsFromModalBtn">在 ChatGPT 裡使用此提示詞</button>
+                <div class="modal-footer justify-content-between">
+                    <div>
+                        <button type="button" class="btn btn-danger" id="resetPromptBtn">重置</button>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-secondary me-2" id="copyPromptBtn">複製</button>
+                        <button type="button" class="btn btn-secondary me-2" id="useGptsFromModalBtn">在 ChatGPT
+                            使用</button>
+                        <button type="button" class="btn btn-secondary" id="useChatwiseGptsFromModalBtn">加入到
+                            ChatWise</button>
+                    </div>
                 </div>
             </div>
         </div>

@@ -86,7 +86,7 @@ function loadCards() {
             openModal(currentData.id);
         };
 
-        const title = document.createElement('h5');
+        const title = document.createElement('p');
         title.className = 'card-title';
         title.textContent = currentData.title;
 
@@ -108,6 +108,13 @@ function openModal(promptId) {
     modalTextarea.value = data.content;
     modal.dataset.currentPromptId = promptId;
 
+    const urlParams = new URLSearchParams(window.location.search);
+    const mode = urlParams.get('mode');
+    const isEditMode = mode === 'edit';
+
+    modalTitleInput.readOnly = !isEditMode;
+    modalTextarea.readOnly = !isEditMode;
+
     const bsModal = new bootstrap.Modal(modal);
     bsModal.show();
 }
@@ -127,9 +134,38 @@ function updateLink() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const mode = urlParams.get('mode');
+    const resetBtn = document.getElementById('resetPromptBtn');
+    if (mode !== 'edit') {
+        resetBtn.parentElement.style.display = 'none';
+        document.getElementById('promptTextarea').parentElement.style.display = 'none';
+        document.getElementById('chatgptLink').style.display = 'none';
+    }
+
     loadCards();
     updateLink();
 
-    document.getElementById('resetPromptBtn').addEventListener('click', resetPrompt);
+    resetBtn.addEventListener('click', resetPrompt);
     document.getElementById('useGptsFromModalBtn').addEventListener('click', openChatGptWithModalContent);
+    document.getElementById('copyPromptBtn').addEventListener('click', function () {
+        const textarea = document.getElementById('modalPromptTextarea');
+        if (textarea) {
+            navigator.clipboard.writeText(textarea.value)
+                .then(() => {
+                    // 可選：顯示提示訊息
+                    const btn = document.getElementById('copyPromptBtn');
+                    btn.textContent = '已複製';
+                    setTimeout(() => { btn.textContent = '複製'; }, 1200);
+                });
+        }
+    });
+    document.getElementById('useChatwiseGptsFromModalBtn').addEventListener('click', function () {
+        const textarea = document.getElementById('modalPromptTextarea');
+        if (textarea) {
+            const encodedValue = encodeURIComponent(textarea.value);
+            const url = `chatwise://chat?instruction=${encodedValue}`;
+            window.open(url, '_blank');
+        }
+    });
 });
