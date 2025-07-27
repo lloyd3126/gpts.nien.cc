@@ -90,6 +90,7 @@ prompt:
     metadata:
       tag: 'Gemini 生成'
       author: 'Gemini'
+      displayTitle: '產品文案撰寫師'
       activeVersion: 'v1'
       draft: false
     v1:
@@ -104,6 +105,7 @@ prompt:
     metadata:
       tag: 'Gemini 生成'
       author: 'Gemini'
+      displayTitle: '創意寫作夥伴'
       activeVersion: 'v1'
       draft: false
     v1:
@@ -118,6 +120,7 @@ prompt:
     metadata:
       tag: 'Gemini 生成'
       author: 'Gemini'
+      displayTitle: '專業郵件助理'
       activeVersion: 'v1'
       draft: false
     v1:
@@ -132,6 +135,7 @@ prompt:
     metadata:
       tag: '使用中'
       author: '陳重年'
+      displayTitle: '幫我用酸民的語氣回覆'
       activeVersion: 'v1'
       draft: true
     v1:
@@ -168,6 +172,7 @@ prompt:
     metadata:
       tag: 'Gemini 生成'
       author: 'Gemini'
+      displayTitle: '居家健身教練'
       activeVersion: 'v1'
       draft: false
     v1:
@@ -182,6 +187,7 @@ prompt:
     metadata:
       tag: '使用中'
       author: 'Anthropic'
+      displayTitle: '幫我拆解步驟'
       activeVersion: 'v1'
       draft: false
     v1:
@@ -196,6 +202,7 @@ prompt:
     metadata:
       tag: 'Gemini 生成'
       author: 'Gemini'
+      displayTitle: '面試準備教練'
       activeVersion: 'v1'
       draft: false
     v1:
@@ -210,6 +217,7 @@ prompt:
     metadata:
       tag: 'Gemini 生成'
       author: 'Gemini'
+      displayTitle: '語言學習導師'
       activeVersion: 'v1'
       draft: false
     v1:
@@ -224,6 +232,7 @@ prompt:
     metadata:
       tag: 'Gemini 生成'
       author: 'Gemini'
+      displayTitle: '快速食譜生成器'
       activeVersion: 'v1'
       draft: false
     v1:
@@ -238,6 +247,7 @@ prompt:
     metadata:
       tag: 'Gemini 生成'
       author: 'Gemini'
+      displayTitle: '科普知識解說員'
       activeVersion: 'v1'
       draft: false
     v1:
@@ -252,6 +262,7 @@ prompt:
     metadata:
       tag: '使用中'
       author: 'Anthropic'
+      displayTitle: '幫我淺顯易懂的說明'
       activeVersion: 'v1'
       draft: false
     v1:
@@ -266,6 +277,7 @@ prompt:
     metadata:
       tag: 'Gemini 生成'
       author: 'Gemini'
+      displayTitle: '科技故障排除專家'
       activeVersion: 'v1'
       draft: false
     v1:
@@ -280,6 +292,7 @@ prompt:
     metadata:
       tag: 'Gemini 生成'
       author: 'Gemini'
+      displayTitle: '旅行行程規劃師'
       activeVersion: 'v1'
       draft: false
     v1:
@@ -294,6 +307,7 @@ prompt:
     metadata:
       tag: '使用中'
       author: '陳重年'
+      displayTitle: '幫我製作可以用來協助我的網頁'
       activeVersion: 'v1'
       draft: false
     v1:
