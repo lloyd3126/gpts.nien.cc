@@ -1,5 +1,42 @@
 body {
-    padding-bottom: 100px;
+    overflow-x: hidden;
+    /* 防止水平滾動 */
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    height: 100vh;
+    max-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 2rem 15px 0 15px;
+    /* 添加左右 padding，與 Bootstrap 一致 */
+}
+
+.container>h1,
+.container>.mb-3,
+.container>.btn {
+    flex-shrink: 0;
+}
+
+.header-section {
+    flex-shrink: 0;
+    /* margin-bottom: 1.5rem; */
+    padding-bottom: 1rem;
+    /* border-bottom: 1px solid #dee2e6; */
+}
+
+.header-section .btn-outline-primary {
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.header-section .btn-outline-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(13, 110, 253, 0.2);
 }
 
 .prompt-card {
@@ -73,4 +110,107 @@ body {
 
 #copyPromptBtn {
     width: 80px;
+}
+
+#promptDetailContainer {
+    transition: all 0.3s ease-in-out;
+}
+
+#promptCardsContainer {
+    transition: all 0.3s ease-in-out;
+}
+
+/* 計算可用高度：100vh 減去標題、輸入區域、按鈕等固定元素的高度 */
+.main-content-area {
+    flex: 1;
+    min-height: 0;
+    /* 重要：允許 flex 項目縮小 */
+    overflow: hidden;
+    padding: 15px 0px;
+}
+
+#promptCardsContainer.col-3,
+#promptCardsContainer.col-12 {
+    height: 100%;
+    overflow-y: auto;
+    padding-right: 15px;
+}
+
+#promptDetailContainer.col-9 {
+    height: 100%;
+    overflow: hidden;
+    padding-left: 15px;
+}
+
+#promptDetailContainer .card {
+    height: 100%;
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    /* 防止卡片超出容器 */
+}
+
+#promptDetailContainer .card-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem;
+}
+
+#promptDetailContainer .card-header,
+#promptDetailContainer .card-footer {
+    flex-shrink: 0;
+}
+
+#promptDetailContainer .card-footer {
+    background-color: #f8f9fa;
+    border-top: 1px solid rgba(0, 0, 0, .125);
+    padding: 0.75rem 1rem;
+    /* 減少 padding 以節省空間 */
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center;
+}
+
+#detailPromptTextarea {
+    resize: vertical;
+    min-height: 300px;
+}
+
+/* 優化卡片容器的滾動體驗 */
+#promptCardsContainer::-webkit-scrollbar {
+    width: 8px;
+}
+
+#promptCardsContainer::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+#promptCardsContainer::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+#promptCardsContainer::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* 詳情區域滾動條樣式 */
+#promptDetailContainer .card-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+#promptDetailContainer .card-body::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+#promptDetailContainer .card-body::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+#promptDetailContainer .card-body::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
 }

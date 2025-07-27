@@ -11,27 +11,18 @@
 </head>
 
 <body>
-    <div class="container">
-        <div class="header-section">
-            <div class="d-flex justify-content-between align-items-center">
-                <h1 class="mb-0">提示詞 <span class="fs-6">｜ 陳重年 Chen Chung Nien</span></h1>
-                <!-- <a href="custom-prompt.html" class="btn btn-outline-primary">
-                    <i class="bi bi-plus-lg me-1"></i>自定義提示詞
-                </a> -->
-            </div>
+    <div class="container mt-5">
+        <h1 class="mb-4">提示詞 <span class="fs-6">｜ 陳重年 Chen Chung Nien</span></h1>
+        <div class="mb-3">
+            <label for="promptTextarea" class="form-label">請輸入您的提示詞：</label>
+            <textarea class="form-control" id="promptTextarea" rows="5" oninput="updateLink()"
+                placeholder="例如：寫一首關於貓的詩"></textarea>
         </div>
+        <a id="chatgptLink" href="http://chatgpt.com/?q=" target="_blank" class="btn btn-primary">
+            在 ChatGPT 裡使用此提示詞
+        </a>
 
-        <div class="row main-content-area" id="mainContent">
-            <div class="col-12" id="promptCardsContainer">
-                <div id="loadingIndicator" class="text-center my-5">
-                    <div class="spinner-border" role="status">
-                        <span class="visually-hidden">載入中...</span>
-                    </div>
-                    <p class="mt-2">正在載入提示詞...</p>
-                </div>
-            </div>
-            <div class="col-9 d-none" id="promptDetailContainer">
-            </div>
+        <div id="promptCardsContainer">
         </div>
     </div>
 
@@ -74,7 +65,6 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
     <script src="main.js"></script>
 </body>
 

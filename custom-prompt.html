@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自定義提示詞｜陳重年 Chen Chung Nien</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="shortcut icon" type="image/x-icon" href="./static/favicon.ico">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+        }
+
+        .custom-prompt-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 3rem;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        .brand-title {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: bold;
+        }
+
+        .custom-textarea {
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            transition: border-color 0.3s ease;
+        }
+
+        .custom-textarea:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+
+        .custom-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 30px;
+            font-weight: 500;
+            transition: transform 0.2s ease;
+        }
+
+        .custom-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .back-link {
+            color: #6c757d;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .back-link:hover {
+            color: #667eea;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="custom-prompt-container">
+                    <div class="text-center mb-4">
+                        <h1 class="brand-title mb-3">自定義提示詞</h1>
+                        <p class="text-muted">輸入您的提示詞，直接在 ChatGPT 中使用</p>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="promptTextarea" class="form-label fw-bold">請輸入您的提示詞：</label>
+                        <textarea class="form-control custom-textarea" id="promptTextarea" rows="8"
+                            oninput="updateLink()" placeholder="例如：寫一首關於貓的詩，要押韻且富有詩意..."></textarea>
+                    </div>
+
+                    <div class="d-grid gap-2 mb-4">
+                        <a id="chatgptLink" href="http://chatgpt.com/?q=" target="_blank"
+                            class="btn btn-primary custom-btn">
+                            <i class="bi bi-chat-dots me-2"></i>在 ChatGPT 裡使用此提示詞
+                        </a>
+                    </div>
+
+                    <div class="text-center">
+                        <a href="index.html" class="back-link">
+                            <i class="bi bi-arrow-left me-1"></i>返回提示詞庫
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function updateLink() {
+            const textarea = document.getElementById('promptTextarea');
+            const link = document.getElementById('chatgptLink');
+            const encodedValue = encodeURIComponent(textarea.value + '\n\n請說明如何使用這個提示詞。');
+            link.href = `http://chatgpt.com/?q=${encodedValue}`;
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            updateLink();
+        });
+    </script>
+</body>
+
+</html>

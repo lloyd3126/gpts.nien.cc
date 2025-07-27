@@ -1,0 +1,76 @@
+body {
+    padding-bottom: 100px;
+}
+
+.prompt-card {
+    flex: 1 1 calc(25% - 1rem);
+    min-width: 280px;
+    max-width: calc(25% - 1rem);
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    cursor: pointer;
+    background-color: #fff;
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+}
+
+.prompt-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.prompt-card .card-body {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1.5rem;
+    text-decoration: none;
+}
+
+.prompt-card .card-body a,
+.prompt-card .card-body a:hover,
+.prompt-card .card-body a:focus {
+    color: inherit;
+    display: block;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.prompt-card .card-title {
+    margin-bottom: 0;
+    font-weight: bold;
+    font-size: 1rem;
+}
+
+@media (max-width: 767.98px) {
+    .prompt-card {
+        flex: 1 1 100%;
+        max-width: 100%;
+    }
+}
+
+.modal-body pre {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    padding: 1rem;
+    border-radius: 0.25rem;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+#resetPromptBtn {
+    width: 80px;
+}
+
+#copyPromptBtn {
+    width: 80px;
+}
