@@ -1832,9 +1832,13 @@ function setActiveHeaderButton(buttonId) {
     if (buttonElement) {
         console.log(`🎯 [setActiveHeaderButton] 按鈕 ${buttonId} 設定為 active`);
         buttonElement.classList.add('active');
-        // 將 btn-outline-dark 改為 btn-dark 以顯示 active 效果
-        buttonElement.classList.remove('btn-outline-dark');
-        buttonElement.classList.add('btn-dark');
+
+        // 強制修正樣式以確保正確顯示
+        setTimeout(() => {
+            if (typeof window.forceFixButtonStyles === 'function') {
+                window.forceFixButtonStyles();
+            }
+        }, 10);
     } else {
         console.error(`🎯 [setActiveHeaderButton] 找不到按鈕:`, buttonId);
     }
@@ -1848,10 +1852,15 @@ function clearActiveHeaderButtons() {
         const buttonElement = document.getElementById(buttonId);
         if (buttonElement) {
             const wasActive = buttonElement.classList.contains('active');
-            // 無條件移除 active 類別和深色樣式
+            // 只移除 active 類別，保持原本的 btn-outline-dark
             buttonElement.classList.remove('active');
-            buttonElement.classList.remove('btn-dark');
-            buttonElement.classList.add('btn-outline-dark');
+
+            // 清除所有強制設定的 style 屬性
+            buttonElement.style.removeProperty('background-color');
+            buttonElement.style.removeProperty('color');
+            buttonElement.style.removeProperty('border-color');
+            buttonElement.style.removeProperty('opacity');
+
             if (wasActive) {
                 console.log(`🧹 [clearActiveHeaderButtons] 按鈕 ${buttonId} active 狀態已清除`);
             }
@@ -2776,6 +2785,142 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         }
     });
+
+    // =============== 設定按鈕樣式變化監聽器 ===============
+
+    const settingsBtn = document.getElementById('settingsBtn');
+    const homeBtn = document.getElementById('homeBtn');
+    const addPromptHeaderBtn = document.getElementById('addPromptHeaderBtn');
+
+    // 獲取元素計算樣式的函數
+    function getComputedStyles(element) {
+        const styles = window.getComputedStyle(element);
+        return {
+            backgroundColor: styles.backgroundColor,
+            color: styles.color,
+            borderColor: styles.borderColor,
+            transform: styles.transform,
+            boxShadow: styles.boxShadow,
+            opacity: styles.opacity,
+            classes: element.className,
+            hasActive: element.classList.contains('active')
+        };
+    }
+
+    // 檢查特定CSS屬性的來源
+    function checkCSSSource(element, property) {
+        const styles = window.getComputedStyle(element);
+        console.log(`🔍 [CSS診斷] ${element.id} 的 ${property}:`, styles[property]);
+
+        // 檢查所有相關的CSS規則
+        const sheets = Array.from(document.styleSheets);
+        sheets.forEach((sheet, sheetIndex) => {
+            try {
+                const rules = Array.from(sheet.cssRules || sheet.rules || []);
+                rules.forEach((rule, ruleIndex) => {
+                    if (rule.selectorText && rule.selectorText.includes(element.id)) {
+                        console.log(`🔍 [CSS規則] Sheet ${sheetIndex}, Rule ${ruleIndex}:`, rule.selectorText, rule.style[property]);
+                    }
+                });
+            } catch (e) {
+                // 可能是跨域樣式表，忽略
+            }
+        });
+    }
+
+    // 為按鈕添加樣式監聽器的通用函數
+    function addStyleListeners(button, buttonName, emoji) {
+        console.log(`${emoji} ===== ${buttonName}樣式監聽器已啟動 =====`);
+        console.log(`${emoji} [初始狀態] ${buttonName}樣式:`, getComputedStyles(button));
+
+        // 監聽滑鼠進入
+        button.addEventListener('mouseenter', function () {
+            console.log(`${emoji} [Hover 開始] 滑鼠進入${buttonName}`);
+            setTimeout(() => {
+                console.log(`${emoji} [Hover 狀態] ${buttonName}樣式:`, getComputedStyles(button));
+                console.log(`${emoji} [Hover 狀態] Active 類別:`, button.classList.contains('active'));
+            }, 50);
+        });
+
+        // 監聽滑鼠離開
+        button.addEventListener('mouseleave', function () {
+            console.log(`${emoji} [Hover 結束] 滑鼠離開${buttonName}`);
+            setTimeout(() => {
+                console.log(`${emoji} [Hover 後] ${buttonName}樣式:`, getComputedStyles(button));
+                console.log(`${emoji} [Hover 後] Active 類別:`, button.classList.contains('active'));
+            }, 50);
+        });
+
+        // 監聽滑鼠按下
+        button.addEventListener('mousedown', function () {
+            console.log(`${emoji} [點擊開始] 滑鼠按下${buttonName}`);
+            setTimeout(() => {
+                console.log(`${emoji} [點擊狀態] ${buttonName}樣式:`, getComputedStyles(button));
+                console.log(`${emoji} [點擊狀態] Active 類別:`, button.classList.contains('active'));
+            }, 50);
+        });
+
+        // 監聽滑鼠釋放
+        button.addEventListener('mouseup', function () {
+            console.log(`${emoji} [點擊結束] 滑鼠釋放${buttonName}`);
+            setTimeout(() => {
+                console.log(`${emoji} [點擊後] ${buttonName}樣式:`, getComputedStyles(button));
+                console.log(`${emoji} [點擊後] Active 類別:`, button.classList.contains('active'));
+            }, 50);
+        });
+
+        // 監聽類別變化
+        const observer = new MutationObserver(function (mutations) {
+            mutations.forEach(function (mutation) {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    const hasActive = button.classList.contains('active');
+                    console.log(`${emoji} [類別變化] Active 狀態變化:`, hasActive);
+                    setTimeout(() => {
+                        const styles = getComputedStyles(button);
+                        console.log(`${emoji} [類別變化後] ${buttonName}樣式:`, styles);
+
+                        // 檢查背景色異常
+                        if (hasActive && styles.backgroundColor.includes('rgba') && !styles.backgroundColor.includes('rgba(0, 0, 0, 0)')) {
+                            console.warn(`⚠️ [背景色異常] ${buttonName} active狀態下背景色包含透明度:`, styles.backgroundColor);
+                            console.log(`🔍 [診斷開始] 檢查 ${buttonName} 的CSS來源...`);
+                            checkCSSSource(button, 'backgroundColor');
+                            checkCSSSource(button, 'opacity');
+                        }
+                    }, 50);
+                }
+            });
+        });
+
+        observer.observe(button, {
+            attributes: true,
+            attributeFilter: ['class']
+        });
+
+        console.log(`${emoji} ===== ${buttonName}監聽器設定完成 =====`);
+    }
+
+    // 為所有頂部按鈕添加監聽器
+    addStyleListeners(homeBtn, '首頁按鈕', '🏠');
+    addStyleListeners(addPromptHeaderBtn, '新增按鈕', '➕');
+    addStyleListeners(settingsBtn, '設定按鈕', '🔧');
+
+    // 強制修正按鈕樣式的函數
+    function forceFixButtonStyles() {
+        const buttons = [homeBtn, addPromptHeaderBtn, settingsBtn];
+        buttons.forEach(button => {
+            if (button.classList.contains('active')) {
+                // 強制設定 active 狀態的樣式
+                button.style.setProperty('background-color', '#212529', 'important');
+                button.style.setProperty('color', '#ffffff', 'important');
+                button.style.setProperty('border-color', '#212529', 'important');
+                button.style.setProperty('opacity', '1', 'important');
+                console.log(`🔧 [強制修正] ${button.id} 樣式已強制修正`);
+            }
+        });
+    }
+
+    // 每次有按鈕變為 active 狀態時，檢查並修正樣式
+    window.forceFixButtonStyles = forceFixButtonStyles;
 });
 
 // =============== 資料管理功能 ===============

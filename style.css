@@ -131,6 +131,28 @@ body {
     border-color: #212529 !important;
 }
 
+/* 加強 active 狀態的優先級，覆蓋 Bootstrap 的 btn-outline-dark 樣式 */
+button.btn.btn-outline-dark#homeBtn.active,
+button.btn.btn-outline-dark#addPromptHeaderBtn.active,
+button.btn.btn-outline-dark#settingsBtn.active {
+    background-color: #212529 !important;
+    color: #ffffff !important;
+    border-color: #212529 !important;
+    opacity: 1 !important;
+}
+
+/* 確保 active 狀態下的 hover 效果也正確 */
+button.btn.btn-outline-dark#homeBtn.active:hover,
+button.btn.btn-outline-dark#addPromptHeaderBtn.active:hover,
+button.btn.btn-outline-dark#settingsBtn.active:hover {
+    background-color: #212529 !important;
+    color: #ffffff !important;
+    border-color: #212529 !important;
+    transform: none !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+}
+
 .prompt-card .card-body {
     flex-grow: 1;
     display: flex;
