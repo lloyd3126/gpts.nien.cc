@@ -305,7 +305,7 @@ async function loadCards() {
     allTags.forEach(tag => {
         if (promptsByTag[tag]) {
             const tagHeader = document.createElement('h2');
-            tagHeader.className = 'mt-2 mb-3 fs-4';
+            tagHeader.className = 'mt-2 mb-3 fs-55k4xu;3ek71j';
             tagHeader.textContent = tag;
             container.appendChild(tagHeader);
 
@@ -483,19 +483,27 @@ function openAddPromptModal() {
         // 更新標籤選項
         updateTagOptions();
 
+        // 先清除所有按鈕的 active 狀態，然後設定新增提示詞按鈕為 active 狀態
+        clearActiveHeaderButtons();
+        setActiveHeaderButton('addPromptHeaderBtn');
+
         modal.show();
     }
 }
 
 // 開啟右側新增提示詞表單
 function openAddPromptForm() {
+    console.log('📝 [openAddPromptForm] 開始執行');
+
     // 如果當前有編輯狀態，先保存並退出編輯
     if (currentEditingPromptId) {
+        console.log('📝 [openAddPromptForm] 保存當前編輯狀態:', currentEditingPromptId);
         saveDetailPromptToLocalStorage();
         currentEditingPromptId = null;
     }
 
     // 清除所有卡片的 active 狀態
+    console.log('📝 [openAddPromptForm] 清除所有卡片的 active 狀態');
     clearActiveCards();
 
     // 創建新增表單的 HTML 內容
@@ -570,6 +578,10 @@ function openAddPromptForm() {
     cardsContainer.className = 'col-3 border rounded p-3';
     detailContainer.className = 'col-9';
 
+    // 先清除所有按鈕的 active 狀態，然後設定新增提示詞按鈕為 active 狀態
+    clearActiveHeaderButtons();
+    setActiveHeaderButton('addPromptHeaderBtn');
+
     // 更新標籤選項
     updateDetailTagOptions();
 
@@ -585,6 +597,14 @@ function openAddPromptForm() {
 
     // 設定當前狀態為新增模式
     detailContainer.dataset.currentMode = 'add';
+    // 清除設定面板的類型標記，確保狀態一致性
+    delete detailContainer.dataset.currentType;
+
+    console.log('📝 [openAddPromptForm] 設定完成:');
+    console.log('  - currentMode:', detailContainer.dataset.currentMode);
+    console.log('  - currentType:', detailContainer.dataset.currentType);
+    console.log('  - 面板類別:', detailContainer.className);
+    console.log('📝 [openAddPromptForm] 執行完成');
 }
 
 // 關閉右側新增表單
@@ -600,6 +620,12 @@ function closeAddPromptForm() {
     detailContainer.removeAttribute('data-current-mode');
     detailContainer.removeAttribute('data-current-type');
     detailContainer.removeAttribute('data-current-prompt-id');
+
+    // 清除所有卡片的 active 狀態
+    clearActiveCards();
+
+    // 清除所有頂部按鈕的 active 狀態
+    clearActiveHeaderButtons();
 }
 
 // ============ 統一的詳細面板管理系統 ============
@@ -796,17 +822,23 @@ function openDetailPanel(type, data = null) {
 
 // 桌面模式：開啟右側面板
 function openDetailPanelDesktop(type, data = null) {
-    console.log(`=== openDetailPanelDesktop 開始 (${type}) ===`);
+    console.log(`🏠 [openDetailPanelDesktop] 開始執行 (${type})`);
 
     const template = detailTemplates[type];
     if (!template) {
-        console.error('未找到對應的面板模板:', type);
+        console.error('❌ [openDetailPanelDesktop] 未找到對應的面板模板:', type);
         return;
     }
 
     // 切換版面配置
     const cardsContainer = document.getElementById('promptCardsContainer');
     const detailContainer = document.getElementById('promptDetailContainer');
+
+    console.log('🏠 [openDetailPanelDesktop] 切換前狀態:');
+    console.log('  - 卡片容器類別:', cardsContainer.className);
+    console.log('  - 詳情容器類別:', detailContainer.className);
+    console.log('  - currentType:', detailContainer.dataset.currentType);
+    console.log('  - currentMode:', detailContainer.dataset.currentMode);
 
     // 生成面板 HTML
     const panelHTML = `
@@ -832,11 +864,32 @@ function openDetailPanelDesktop(type, data = null) {
     cardsContainer.className = 'col-3 border rounded p-3';
     detailContainer.className = 'col-9';
 
+    // 先清除所有按鈕的 active 狀態，然後根據面板類型設定對應按鈕
+    console.log('🏠 [openDetailPanelDesktop] 清除按鈕狀態並設定新狀態');
+    clearActiveHeaderButtons();
+    if (type === 'settings') {
+        setActiveHeaderButton('settingsBtn');
+        // 清除新增表單的模式標記，確保狀態一致性
+        console.log('🏠 [openDetailPanelDesktop] 清除 currentMode 標記');
+        delete detailContainer.dataset.currentMode;
+    } else if (type === 'add') {
+        setActiveHeaderButton('addPromptHeaderBtn');
+        // 設定新增表單的模式標記
+        console.log('🏠 [openDetailPanelDesktop] 設定 currentMode = add');
+        detailContainer.dataset.currentMode = 'add';
+    }
+
+    console.log('🏠 [openDetailPanelDesktop] 狀態設定完成:');
+    console.log('  - currentType:', detailContainer.dataset.currentType);
+    console.log('  - currentMode:', detailContainer.dataset.currentMode);
+    console.log('  - 卡片容器類別:', cardsContainer.className);
+    console.log('  - 詳情容器類別:', detailContainer.className);
+
     // 綁定對應的事件
     bindDetailEvents(type, data);
 
-    console.log(`✅ ${template.title}面板已開啟`);
-    console.log(`=== openDetailPanelDesktop 完成 (${type}) ===`);
+    console.log(`✅ [openDetailPanelDesktop] ${template.title}面板已開啟`);
+    console.log(`🏠 [openDetailPanelDesktop] 執行完成 (${type})`);
 }
 
 // 手機模式：開啟 Modal
@@ -858,6 +911,13 @@ function openDetailPanelMobile(type, data = null) {
     }
 
     const modal = new bootstrap.Modal(document.getElementById(modalId));
+
+    // 先清除所有按鈕的 active 狀態，然後根據面板類型設定對應按鈕
+    clearActiveHeaderButtons();
+    if (type === 'settings') {
+        setActiveHeaderButton('settingsBtn');
+    }
+
     modal.show();
 
     console.log(`=== openDetailPanelMobile 完成 (${type}) ===`);
@@ -865,10 +925,15 @@ function openDetailPanelMobile(type, data = null) {
 
 // 統一關閉詳細面板
 function closeDetailPanel() {
-    console.log('=== closeDetailPanel 開始 ===');
+    console.log('❌ [closeDetailPanel] 開始執行');
 
     const cardsContainer = document.getElementById('promptCardsContainer');
     const detailContainer = document.getElementById('promptDetailContainer');
+
+    console.log('❌ [closeDetailPanel] 關閉前狀態:');
+    console.log('  - currentType:', detailContainer.dataset.currentType);
+    console.log('  - currentMode:', detailContainer.dataset.currentMode);
+    console.log('  - 詳情容器類別:', detailContainer.className);
 
     // 還原版面配置
     cardsContainer.className = 'col-12';
@@ -880,8 +945,17 @@ function closeDetailPanel() {
     detailContainer.removeAttribute('data-current-mode');
     detailContainer.removeAttribute('data-current-prompt-id');
 
-    console.log('✅ 詳細面板已關閉');
-    console.log('=== closeDetailPanel 完成 ===');
+    // 清除所有卡片的 active 狀態
+    clearActiveCards();
+
+    // 清除所有頂部按鈕的 active 狀態
+    clearActiveHeaderButtons();
+
+    console.log('❌ [closeDetailPanel] 清除後狀態:');
+    console.log('  - currentType:', detailContainer.dataset.currentType);
+    console.log('  - currentMode:', detailContainer.dataset.currentMode);
+    console.log('  - 詳情容器類別:', detailContainer.className);
+    console.log('❌ [closeDetailPanel] 執行完成');
 }
 
 // 綁定對應類型的事件
@@ -974,12 +1048,12 @@ function bindSettingsDetailEvents() {
 
 // 開啟設定面板
 function openSettingsPanel() {
-    console.log('=== openSettingsPanel 開始 ===');
+    console.log('⚙️ [openSettingsPanel] 開始執行');
 
     // 使用統一的面板管理系統
     openDetailPanel('settings');
 
-    console.log('=== openSettingsPanel 完成 ===');
+    console.log('⚙️ [openSettingsPanel] 執行完成');
 }
 
 // 處理匯入點擊
@@ -1358,6 +1432,9 @@ function openPromptDetail(promptId) {
     cardsContainer.className = 'col-3 border rounded p-3';
     detailContainer.className = 'col-9';
 
+    // 清除所有頂部按鈕的 active 狀態（提示詞詳情時，兩個按鈕都不應該是 active）
+    clearActiveHeaderButtons();
+
     // 更新詳情區域的內容，並標記提示詞類型
     const isCustomPrompt = customPrompts[promptId] !== undefined;
     populateDetailForm(promptId, data, isCustomPrompt);
@@ -1705,6 +1782,45 @@ function clearActiveCards() {
     const activeCards = document.querySelectorAll('.prompt-card.active');
     activeCards.forEach(card => {
         card.classList.remove('active');
+    });
+}
+
+// 設定指定頂部按鈕為 active 狀態
+function setActiveHeaderButton(buttonId) {
+    console.log(`🎯 [setActiveHeaderButton] 設定按鈕為 active:`, buttonId);
+
+    // 先清除所有頂部按鈕的 active 狀態
+    clearActiveHeaderButtons();
+
+    // 為指定按鈕添加 active 狀態
+    const buttonElement = document.getElementById(buttonId);
+    if (buttonElement) {
+        console.log(`🎯 [setActiveHeaderButton] 按鈕 ${buttonId} 設定為 active`);
+        buttonElement.classList.add('active');
+        // 將 btn-outline-dark 改為 btn-dark 以顯示 active 效果
+        buttonElement.classList.remove('btn-outline-dark');
+        buttonElement.classList.add('btn-dark');
+    } else {
+        console.error(`🎯 [setActiveHeaderButton] 找不到按鈕:`, buttonId);
+    }
+}
+
+// 清除所有頂部按鈕的 active 狀態
+function clearActiveHeaderButtons() {
+    console.log('🧹 [clearActiveHeaderButtons] 清除所有按鈕的 active 狀態');
+    const headerButtons = ['addPromptHeaderBtn', 'settingsBtn'];
+    headerButtons.forEach(buttonId => {
+        const buttonElement = document.getElementById(buttonId);
+        if (buttonElement) {
+            const wasActive = buttonElement.classList.contains('active');
+            // 無條件移除 active 類別和深色樣式
+            buttonElement.classList.remove('active');
+            buttonElement.classList.remove('btn-dark');
+            buttonElement.classList.add('btn-outline-dark');
+            if (wasActive) {
+                console.log(`🧹 [clearActiveHeaderButtons] 按鈕 ${buttonId} active 狀態已清除`);
+            }
+        }
     });
 }
 
@@ -2292,7 +2408,7 @@ function updatePromptCardTag(promptId, newTag) {
 
             // 創建新的標籤標題
             const tagHeader = document.createElement('h2');
-            tagHeader.className = 'mt-2 mb-3 fs-4';
+            tagHeader.className = 'mt-2 mb-3 fs-55k4xu;3ek71j';
             tagHeader.textContent = newTag;
 
             // 創建新的組容器
@@ -2356,6 +2472,8 @@ window.closePromptDetail = closePromptDetail;
 window.closeAddPromptForm = closeAddPromptForm;
 
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log('🚀 =================== 頁面載入開始 ===================');
+
     const urlParams = new URLSearchParams(window.location.search);
     const mode = urlParams.get('mode');
     const resetBtn = document.getElementById('resetPromptBtn');
@@ -2416,22 +2534,33 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 設定按鈕 - 支援切換功能（點一次開啟，再點一次關閉）
     document.getElementById('settingsBtn').addEventListener('click', function () {
+        console.log('🔧 [設定按鈕] 被點擊');
         const detailContainer = document.getElementById('promptDetailContainer');
         const isSettingsPanelOpen = !detailContainer.classList.contains('d-none') &&
             detailContainer.dataset.currentType === 'settings';
 
+        console.log('🔧 [設定按鈕] 面板狀態檢查:');
+        console.log('  - d-none 類別:', detailContainer.classList.contains('d-none'));
+        console.log('  - currentType:', detailContainer.dataset.currentType);
+        console.log('  - currentMode:', detailContainer.dataset.currentMode);
+        console.log('  - isSettingsPanelOpen:', isSettingsPanelOpen);
+
         if (isSettingsPanelOpen) {
             // 如果設定面板已開啟，則關閉
+            console.log('🔧 [設定按鈕] 關閉設定面板');
             closeDetailPanel();
         } else {
             // 如果設定面板未開啟，則開啟
+            console.log('🔧 [設定按鈕] 開啟設定面板');
             openSettingsPanel();
         }
     });
 
     // 標題新增按鈕 - 支援切換功能（點一次開啟，再點一次關閉）
     document.getElementById('addPromptHeaderBtn').addEventListener('click', function () {
+        console.log('➕ [新增按鈕] 被點擊');
         const isDesktop = window.innerWidth >= 768;
+        console.log('➕ [新增按鈕] 裝置模式:', isDesktop ? '桌面' : '手機');
 
         if (isDesktop) {
             // 桌面模式：檢查右側面板是否已開啟新增表單
@@ -2439,15 +2568,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             const isAddFormOpen = !detailContainer.classList.contains('d-none') &&
                 detailContainer.dataset.currentMode === 'add';
 
+            console.log('➕ [新增按鈕] 面板狀態檢查:');
+            console.log('  - d-none 類別:', detailContainer.classList.contains('d-none'));
+            console.log('  - currentType:', detailContainer.dataset.currentType);
+            console.log('  - currentMode:', detailContainer.dataset.currentMode);
+            console.log('  - isAddFormOpen:', isAddFormOpen);
+
             if (isAddFormOpen) {
                 // 如果新增表單已開啟，則關閉
+                console.log('➕ [新增按鈕] 關閉新增表單');
                 closeAddPromptForm();
             } else {
                 // 如果新增表單未開啟，則開啟
+                console.log('➕ [新增按鈕] 開啟新增表單');
                 openAddPromptForm();
             }
         } else {
             // 手機模式：直接開啟 modal
+            console.log('➕ [新增按鈕] 開啟手機版 modal');
             openAddPromptModal();
         }
     });
@@ -2517,6 +2655,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                     modal.show();
                 }
             }
+        }
+    });
+
+    // 添加 Modal 關閉事件監聽器，清除頂部按鈕的 active 狀態
+    const modalsToWatch = [
+        'addPromptModal',
+        'settingsModal',
+        'tagManagementModal'
+    ];
+
+    modalsToWatch.forEach(modalId => {
+        const modalElement = document.getElementById(modalId);
+        if (modalElement) {
+            modalElement.addEventListener('hidden.bs.modal', function () {
+                clearActiveHeaderButtons();
+            });
         }
     });
 });

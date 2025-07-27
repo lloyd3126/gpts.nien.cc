@@ -95,6 +95,38 @@ body {
     box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
 }
 
+/* 頂部按鈕 hover 效果，比照 prompt-card */
+#addPromptHeaderBtn,
+#settingsBtn {
+    transition: transform 0.1s ease-in-out, box-shadow 0.2s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, color 0.15s ease-in-out !important;
+}
+
+#addPromptHeaderBtn:hover,
+#settingsBtn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    color: #212529;
+    background-color: #ffffff;
+    border-color: var(--bs-btn-hover-border-color);
+    /* 保持 Bootstrap 預設的背景色變化 */
+}
+
+#addPromptHeaderBtn.active:hover,
+#settingsBtn.active:hover {
+    transform: none;
+    box-shadow: none;
+    background-color: #212529 !important;
+    color: #ffffff !important;
+    border-color: #212529 !important;
+}
+
+#addPromptHeaderBtn.active,
+#settingsBtn.active {
+    background-color: #212529 !important;
+    color: #ffffff !important;
+    border-color: #212529 !important;
+}
+
 .prompt-card .card-body {
     flex-grow: 1;
     display: flex;
