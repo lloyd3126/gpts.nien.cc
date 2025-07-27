@@ -567,7 +567,7 @@ function openAddPromptForm() {
     detailContainer.innerHTML = addFormHTML;
 
     // 更新版面配置
-    cardsContainer.className = 'col-3';
+    cardsContainer.className = 'col-3 border rounded p-3';
     detailContainer.className = 'col-9';
 
     // 更新標籤選項
@@ -598,6 +598,8 @@ function closeAddPromptForm() {
 
     // 清空狀態
     detailContainer.removeAttribute('data-current-mode');
+    detailContainer.removeAttribute('data-current-type');
+    detailContainer.removeAttribute('data-current-prompt-id');
 }
 
 // ============ 統一的詳細面板管理系統 ============
@@ -823,8 +825,11 @@ function openDetailPanelDesktop(type, data = null) {
     // 設定面板內容
     detailContainer.innerHTML = panelHTML;
 
+    // 設定資料屬性以追蹤當前面板類型
+    detailContainer.dataset.currentType = type;
+
     // 更新版面配置
-    cardsContainer.className = 'col-3';
+    cardsContainer.className = 'col-3 border rounded p-3';
     detailContainer.className = 'col-9';
 
     // 綁定對應的事件
@@ -869,6 +874,11 @@ function closeDetailPanel() {
     cardsContainer.className = 'col-12';
     detailContainer.className = 'col-9 d-none';
     detailContainer.innerHTML = '';
+
+    // 清除資料屬性
+    detailContainer.removeAttribute('data-current-type');
+    detailContainer.removeAttribute('data-current-mode');
+    detailContainer.removeAttribute('data-current-prompt-id');
 
     console.log('✅ 詳細面板已關閉');
     console.log('=== closeDetailPanel 完成 ===');
@@ -1050,9 +1060,15 @@ async function saveNewPromptFromDetail() {
         description: document.getElementById('detailNewPromptDescription').value.trim() || '初版'
     };
 
-    // 驗證必填欄位
+    // 嚴格驗證必填欄位 - 防止儲存空白或不完整的提示詞
     if (!newPrompt.id || !newPrompt.displayTitle || !newPrompt.author || !newPrompt.tag || !newPrompt.content) {
         alert('請填寫所有必填欄位');
+        return;
+    }
+
+    // 額外驗證：確保內容不是只有空白字符
+    if (newPrompt.content.length < 5) {
+        alert('提示詞內容太短，請至少輸入5個字符');
         return;
     }
 
@@ -1155,9 +1171,15 @@ function saveNewPrompt() {
         description: document.getElementById('newPromptDescription').value.trim() || '初版'
     };
 
-    // 驗證必填欄位
+    // 嚴格驗證必填欄位 - 防止儲存空白或不完整的提示詞
     if (!newPrompt.id || !newPrompt.displayTitle || !newPrompt.author || !newPrompt.tag || !newPrompt.content) {
         alert('請填寫所有必填欄位');
+        return;
+    }
+
+    // 額外驗證：確保內容不是只有空白字符
+    if (newPrompt.content.length < 5) {
+        alert('提示詞內容太短，請至少輸入5個字符');
         return;
     }
 
@@ -1333,7 +1355,7 @@ function openPromptDetail(promptId) {
     detailContainer.innerHTML = detailHTML;
 
     // 更新版面配置
-    cardsContainer.className = 'col-3';
+    cardsContainer.className = 'col-3 border rounded p-3';
     detailContainer.className = 'col-9';
 
     // 更新詳情區域的內容，並標記提示詞類型
@@ -2026,7 +2048,15 @@ function saveDetailPromptToLocalStorage() {
     console.log('=== saveDetailPromptToLocalStorage 開始 ===');
     const detailContainer = document.getElementById('promptDetailContainer');
     const promptId = detailContainer.dataset.currentPromptId;
+    const currentMode = detailContainer.dataset.currentMode;
     console.log('保存提示詞 ID:', promptId);
+    console.log('當前模式:', currentMode);
+
+    // 如果是新增模式，不執行自動儲存
+    if (currentMode === 'add') {
+        console.log('❌ 新增模式中，跳過自動儲存');
+        return;
+    }
 
     if (!promptId) {
         console.log('❌ 沒有提示詞 ID，返回');
@@ -2384,13 +2414,43 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 新增功能的事件監聽器
 
-    // 設定按鈕
+    // 設定按鈕 - 支援切換功能（點一次開啟，再點一次關閉）
     document.getElementById('settingsBtn').addEventListener('click', function () {
-        openSettingsPanel();
+        const detailContainer = document.getElementById('promptDetailContainer');
+        const isSettingsPanelOpen = !detailContainer.classList.contains('d-none') &&
+            detailContainer.dataset.currentType === 'settings';
+
+        if (isSettingsPanelOpen) {
+            // 如果設定面板已開啟，則關閉
+            closeDetailPanel();
+        } else {
+            // 如果設定面板未開啟，則開啟
+            openSettingsPanel();
+        }
     });
 
-    // 標題新增按鈕
-    document.getElementById('addPromptHeaderBtn').addEventListener('click', openAddPromptModal);
+    // 標題新增按鈕 - 支援切換功能（點一次開啟，再點一次關閉）
+    document.getElementById('addPromptHeaderBtn').addEventListener('click', function () {
+        const isDesktop = window.innerWidth >= 768;
+
+        if (isDesktop) {
+            // 桌面模式：檢查右側面板是否已開啟新增表單
+            const detailContainer = document.getElementById('promptDetailContainer');
+            const isAddFormOpen = !detailContainer.classList.contains('d-none') &&
+                detailContainer.dataset.currentMode === 'add';
+
+            if (isAddFormOpen) {
+                // 如果新增表單已開啟，則關閉
+                closeAddPromptForm();
+            } else {
+                // 如果新增表單未開啟，則開啟
+                openAddPromptForm();
+            }
+        } else {
+            // 手機模式：直接開啟 modal
+            openAddPromptModal();
+        }
+    });
 
     // 新增提示詞表單提交
     document.getElementById('saveNewPromptBtn').addEventListener('click', saveNewPrompt);
