@@ -2541,18 +2541,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 首頁按鈕 - 回到首頁狀態
     document.getElementById('homeBtn').addEventListener('click', function () {
         console.log('🏠 [首頁按鈕] 被點擊');
-        
+
         // 檢查是否已經是首頁狀態
         const detailContainer = document.getElementById('promptDetailContainer');
         const cardsContainer = document.getElementById('promptCardsContainer');
-        const isHomePage = detailContainer.classList.contains('d-none') && 
-                          cardsContainer.classList.contains('col-12');
-        
+        const isHomePage = detailContainer.classList.contains('d-none') &&
+            cardsContainer.classList.contains('col-12');
+
         console.log('🏠 [首頁按鈕] 當前狀態檢查:');
         console.log('  - 詳情容器是否隱藏:', detailContainer.classList.contains('d-none'));
         console.log('  - 卡片容器是否全寬:', cardsContainer.classList.contains('col-12'));
         console.log('  - 是否已在首頁:', isHomePage);
-        
+
         if (!isHomePage) {
             // 不在首頁狀態，切換到首頁
             console.log('🏠 [首頁按鈕] 切換到首頁狀態');
