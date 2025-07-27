@@ -305,7 +305,7 @@ async function loadCards() {
     allTags.forEach(tag => {
         if (promptsByTag[tag]) {
             const tagHeader = document.createElement('h2');
-            tagHeader.className = 'mt-2 mb-3 fs-55k4xu;3ek71j';
+            tagHeader.className = 'mt-2 mb-3 fs-5';
             tagHeader.textContent = tag;
             container.appendChild(tagHeader);
 
@@ -2411,7 +2411,7 @@ function updatePromptCardTag(promptId, newTag) {
 
             // 創建新的標籤標題
             const tagHeader = document.createElement('h2');
-            tagHeader.className = 'mt-2 mb-3 fs-55k4xu;3ek71j';
+            tagHeader.className = 'mt-2 mb-3 fs-5';
             tagHeader.textContent = newTag;
 
             // 創建新的組容器
