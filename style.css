@@ -228,9 +228,10 @@ button.btn.btn-outline-dark#settingsBtn.active:hover {
 } */
 
 #promptCardsContainer {
-    /* transition: all 0.3s ease-in-out; */
+    transition: width 0.3s ease-in-out;
     padding-right: 15px;
 }
+
 
 /* 計算可用高度：100vh 減去標題、輸入區域、按鈕等固定元素的高度 */
 .main-content-area {
