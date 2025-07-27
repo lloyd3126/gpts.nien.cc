@@ -624,8 +624,8 @@ function closeAddPromptForm() {
     // 清除所有卡片的 active 狀態
     clearActiveCards();
 
-    // 清除所有頂部按鈕的 active 狀態
-    clearActiveHeaderButtons();
+    // 設定首頁按鈕為 active 狀態（表示回到首頁）
+    setActiveHeaderButton('homeBtn');
 }
 
 // ============ 統一的詳細面板管理系統 ============
@@ -948,8 +948,8 @@ function closeDetailPanel() {
     // 清除所有卡片的 active 狀態
     clearActiveCards();
 
-    // 清除所有頂部按鈕的 active 狀態
-    clearActiveHeaderButtons();
+    // 設定首頁按鈕為 active 狀態（表示回到首頁）
+    setActiveHeaderButton('homeBtn');
 
     console.log('❌ [closeDetailPanel] 清除後狀態:');
     console.log('  - currentType:', detailContainer.dataset.currentType);
@@ -1523,6 +1523,9 @@ function closePromptDetail() {
     // 清除所有卡片的 active 狀態
     clearActiveCards();
 
+    // 設定首頁按鈕為 active 狀態（表示回到首頁）
+    setActiveHeaderButton('homeBtn');
+
     // 清空當前提示詞 ID
     detailContainer.removeAttribute('data-current-prompt-id');
 }
@@ -1808,7 +1811,7 @@ function setActiveHeaderButton(buttonId) {
 // 清除所有頂部按鈕的 active 狀態
 function clearActiveHeaderButtons() {
     console.log('🧹 [clearActiveHeaderButtons] 清除所有按鈕的 active 狀態');
-    const headerButtons = ['addPromptHeaderBtn', 'settingsBtn'];
+    const headerButtons = ['homeBtn', 'addPromptHeaderBtn', 'settingsBtn'];
     headerButtons.forEach(buttonId => {
         const buttonElement = document.getElementById(buttonId);
         if (buttonElement) {
@@ -2495,6 +2498,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadCards();
     // updateLink(); // 移除，因為主頁面不再有輸入框
 
+    // 初始化首頁按鈕為 active 狀態
+    setActiveHeaderButton('homeBtn');
+
     // 修復資料一致性
     syncDataConsistency();
 
@@ -2531,6 +2537,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // 新增功能的事件監聽器
+
+    // 首頁按鈕 - 回到首頁狀態
+    document.getElementById('homeBtn').addEventListener('click', function () {
+        console.log('🏠 [首頁按鈕] 被點擊');
+        
+        // 檢查是否已經是首頁狀態
+        const detailContainer = document.getElementById('promptDetailContainer');
+        const cardsContainer = document.getElementById('promptCardsContainer');
+        const isHomePage = detailContainer.classList.contains('d-none') && 
+                          cardsContainer.classList.contains('col-12');
+        
+        console.log('🏠 [首頁按鈕] 當前狀態檢查:');
+        console.log('  - 詳情容器是否隱藏:', detailContainer.classList.contains('d-none'));
+        console.log('  - 卡片容器是否全寬:', cardsContainer.classList.contains('col-12'));
+        console.log('  - 是否已在首頁:', isHomePage);
+        
+        if (!isHomePage) {
+            // 不在首頁狀態，切換到首頁
+            console.log('🏠 [首頁按鈕] 切換到首頁狀態');
+            closeDetailPanel();
+            // 設定首頁按鈕為 active 狀態
+            setActiveHeaderButton('homeBtn');
+        } else {
+            console.log('🏠 [首頁按鈕] 已經在首頁狀態');
+        }
+    });
 
     // 設定按鈕 - 支援切換功能（點一次開啟，再點一次關閉）
     document.getElementById('settingsBtn').addEventListener('click', function () {

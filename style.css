@@ -96,11 +96,13 @@ body {
 }
 
 /* 頂部按鈕 hover 效果，比照 prompt-card */
+#homeBtn,
 #addPromptHeaderBtn,
 #settingsBtn {
     transition: transform 0.1s ease-in-out, box-shadow 0.2s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, color 0.15s ease-in-out !important;
 }
 
+#homeBtn:hover,
 #addPromptHeaderBtn:hover,
 #settingsBtn:hover {
     transform: translateY(-3px);
@@ -111,6 +113,7 @@ body {
     /* 保持 Bootstrap 預設的背景色變化 */
 }
 
+#homeBtn.active:hover,
 #addPromptHeaderBtn.active:hover,
 #settingsBtn.active:hover {
     transform: none;
@@ -120,6 +123,7 @@ body {
     border-color: #212529 !important;
 }
 
+#homeBtn.active,
 #addPromptHeaderBtn.active,
 #settingsBtn.active {
     background-color: #212529 !important;
