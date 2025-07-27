@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>提示詞｜陳重年 Chen Chung Nien</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="style.css">
     <link rel="shortcut icon" type="image/x-icon" href="./static/favicon.ico">
 </head>
@@ -15,7 +16,14 @@
         <div class="header-section">
             <div class="d-flex justify-content-between align-items-center">
                 <h1 class="mb-0">提示詞 <span class="fs-6">｜ 陳重年 Chen Chung Nien</span></h1>
-
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-success" id="addPromptHeaderBtn">
+                        <i class="bi bi-plus"></i> 新增提示詞
+                    </button>
+                    <button type="button" class="btn btn-outline-primary" id="settingsBtn">
+                        <i class="bi bi-gear"></i> 設定
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -29,6 +37,93 @@
                 </div>
             </div>
             <div class="col-9 d-none" id="promptDetailContainer">
+            </div>
+        </div>
+    </div>
+
+    <!-- 設定選單 Modal -->
+    <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="settingsModalLabel"><i class="bi bi-gear"></i> 設定</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="list-group">
+                        <button type="button" class="list-group-item list-group-item-action" id="manageTagsBtn">
+                            <i class="bi bi-tags"></i> 管理標籤
+                        </button>
+                        <button type="button" class="list-group-item list-group-item-action" id="exportDataBtn">
+                            <i class="bi bi-download"></i> 匯出資料
+                        </button>
+                        <button type="button" class="list-group-item list-group-item-action" id="importDataBtn">
+                            <i class="bi bi-upload"></i> 匯入資料
+                        </button>
+                        <button type="button" class="list-group-item list-group-item-action" id="aboutBtn">
+                            <i class="bi bi-info-circle"></i> 關於
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增提示詞 Modal -->
+    <div class="modal fade" id="addPromptModal" tabindex="-1" aria-labelledby="addPromptModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addPromptModalLabel"><i class="bi bi-plus"></i> 新增提示詞</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addPromptForm">
+                        <div class="mb-3">
+                            <label for="newPromptId" class="form-label">提示詞 ID <span
+                                    class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="newPromptId" placeholder="例: my-custom-prompt"
+                                required>
+                            <div class="form-text">只能使用英文小寫、數字和連字符，這將用於系統內部識別</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newPromptDisplayTitle" class="form-label">顯示標題 <span
+                                    class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="newPromptDisplayTitle" placeholder="例: 我的自訂助理"
+                                required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newPromptAuthor" class="form-label">作者 <span
+                                    class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="newPromptAuthor" placeholder="例: 陳重年" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newPromptTag" class="form-label">標籤 <span class="text-danger">*</span></label>
+                            <select class="form-select" id="newPromptTag" required>
+                                <option value="">請選擇標籤</option>
+                                <option value="使用中">使用中</option>
+                                <option value="Gemini 生成">Gemini 生成</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newPromptContent" class="form-label">提示詞內容 <span
+                                    class="text-danger">*</span></label>
+                            <textarea class="form-control" id="newPromptContent" rows="8" placeholder="請輸入提示詞內容..."
+                                required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newPromptDescription" class="form-label">版本說明</label>
+                            <input type="text" class="form-control" id="newPromptDescription" placeholder="例: 初版"
+                                value="初版">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="saveNewPromptBtn">
+                        <i class="bi bi-check"></i> 建立提示詞
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -70,6 +165,123 @@
             </div>
         </div>
     </div>
+
+    <!-- 標籤管理 Modal -->
+    <div class="modal fade" id="tagManagementModal" tabindex="-1" aria-labelledby="tagManagementModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="tagManagementModalLabel"><i class="bi bi-tags"></i> 標籤管理</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- 新增標籤區域 -->
+                    <div class="mb-4">
+                        <h6 class="fw-bold mb-3">新增標籤</h6>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="newTagInput" placeholder="輸入新標籤名稱">
+                            <button class="btn btn-primary" type="button" id="addTagBtn">
+                                <i class="bi bi-plus"></i> 新增
+                            </button>
+                        </div>
+                        <div class="form-text">標籤名稱不可重複，不可為空</div>
+                    </div>
+
+                    <!-- 標籤列表區域 -->
+                    <div class="mb-3">
+                        <h6 class="fw-bold mb-3">標籤列表</h6>
+
+                        <!-- 全域標籤 -->
+                        <div class="mb-3">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-globe me-2"></i>
+                                <span class="fw-semibold">全域標籤（唯讀）</span>
+                            </div>
+                            <div id="globalTagsList" class="border rounded p-3 bg-light">
+                                <!-- 全域標籤將在這裡動態載入 -->
+                            </div>
+                        </div>
+
+                        <!-- 個人標籤 -->
+                        <div class="mb-3">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-person me-2"></i>
+                                    <span class="fw-semibold">個人標籤</span>
+                                </div>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-danger" id="cleanUnusedTagsBtn">
+                                        <i class="bi bi-trash"></i> 清理未使用
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="personalTagsList" class="border rounded p-3">
+                                <!-- 個人標籤將在這裡動態載入 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 標籤編輯 Modal -->
+    <div class="modal fade" id="editTagModal" tabindex="-1" aria-labelledby="editTagModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editTagModalLabel"><i class="bi bi-pencil"></i> 編輯標籤</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editTagInput" class="form-label">標籤名稱</label>
+                        <input type="text" class="form-control" id="editTagInput" placeholder="輸入新的標籤名稱">
+                        <div class="form-text">標籤名稱不可重複，不可為空</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="saveEditTagBtn">
+                        <i class="bi bi-check"></i> 儲存
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 確認刪除標籤 Modal -->
+    <div class="modal fade" id="deleteTagModal" tabindex="-1" aria-labelledby="deleteTagModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title text-danger" id="deleteTagModalLabel"><i
+                            class="bi bi-exclamation-triangle"></i> 確認刪除</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>確定要刪除標籤「<span id="deleteTagName" class="fw-bold"></span>」嗎？</p>
+                    <p class="text-muted small">此操作無法復原。使用此標籤的提示詞將需要重新設定標籤。</p>
+                    <div id="tagUsageInfo" class="alert alert-warning d-none">
+                        <i class="bi bi-info-circle"></i> 此標籤目前被 <span id="tagUsageCount"></span> 個提示詞使用。
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteTagBtn">
+                        <i class="bi bi-trash"></i> 確認刪除
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 隱藏的檔案輸入用於匯入 -->
+    <input type="file" id="importFileInput" accept=".yml,.yaml" style="display: none;">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
