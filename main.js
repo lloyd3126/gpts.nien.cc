@@ -322,6 +322,18 @@ async function loadCards() {
                 link.className = 'card-body';
                 link.onclick = (e) => {
                     e.preventDefault();
+                    console.log(`🔗 [卡片點擊] 卡片被點擊: ${currentData.id}`);
+                    console.log(`🔗 [卡片點擊] 事件詳情:`, e);
+                    console.log(`🔗 [卡片點擊] 當前時間戳:`, Date.now());
+                    console.log(`🔗 [卡片點擊] 點擊位置: (${e.clientX}, ${e.clientY})`);
+                    console.log(`🔗 [卡片點擊] 目標元素:`, e.target);
+                    console.log(`🔗 [卡片點擊] 當前元素:`, e.currentTarget);
+                    console.log(`🔗 [卡片點擊] 事件類型:`, e.type);
+
+                    // 檢查是否有其他元素在相同位置
+                    const elementsAtPoint = document.elementsFromPoint(e.clientX, e.clientY);
+                    console.log(`🔗 [卡片點擊] 點擊位置的所有元素:`, elementsAtPoint);
+
                     openModal(currentData.id);
                 };
 
@@ -867,6 +879,13 @@ function openDetailPanelDesktop(type, data = null) {
     // 先清除所有按鈕的 active 狀態，然後根據面板類型設定對應按鈕
     console.log('🏠 [openDetailPanelDesktop] 清除按鈕狀態並設定新狀態');
     clearActiveHeaderButtons();
+
+    // 清除所有卡片的選中狀態（設定和新增模式不需要卡片選中）
+    if (type === 'settings' || type === 'add') {
+        console.log('🏠 [openDetailPanelDesktop] 清除卡片選中狀態');
+        clearActiveCards();
+    }
+
     if (type === 'settings') {
         setActiveHeaderButton('settingsBtn');
         // 清除新增表單的模式標記，確保狀態一致性
@@ -1303,6 +1322,9 @@ function saveNewPrompt() {
 }
 
 function openModal(promptId) {
+    console.log(`🎯 [openModal] 被調用，promptId: ${promptId}`);
+    console.log(`🎯 [openModal] 調用堆棧:`, new Error().stack);
+
     // 檢查螢幕寬度，決定使用 modal 還是 3:9 版面
     const isDesktop = window.innerWidth >= 768;
 
@@ -1310,11 +1332,13 @@ function openModal(promptId) {
         // 檢查當前是否已經開啟了詳情區域
         const detailContainer = document.getElementById('promptDetailContainer');
         const currentPromptId = detailContainer.dataset.currentPromptId;
+        const currentType = detailContainer.dataset.currentType;
 
-        // 如果點擊的是同一個卡片，則切換開關
-        if (currentPromptId === promptId && !detailContainer.classList.contains('d-none')) {
+        // 如果點擊的是同一個卡片且當前顯示的是該提示詞詳情，則關閉
+        if (currentPromptId === promptId && currentType === 'prompt' && !detailContainer.classList.contains('d-none')) {
             closePromptDetail();
         } else {
+            // 否則開啟提示詞詳情（可能是不同卡片，或從設定/新增模式切換過來）
             openPromptDetail(promptId);
         }
     } else {
@@ -1432,8 +1456,13 @@ function openPromptDetail(promptId) {
     cardsContainer.className = 'col-3 border rounded p-3';
     detailContainer.className = 'col-9';
 
-    // 清除所有頂部按鈕的 active 狀態（提示詞詳情時，兩個按鈕都不應該是 active）
+    // 進入提示詞詳情模式時，清除所有頂部按鈕的 active 狀態
     clearActiveHeaderButtons();
+    console.log('📋 [openPromptDetail] 進入提示詞詳情模式，清除所有按鈕狀態');
+
+    // 更新模式標記為提示詞模式
+    detailContainer.dataset.currentMode = 'prompt';
+    detailContainer.dataset.currentType = 'prompt';
 
     // 更新詳情區域的內容，並標記提示詞類型
     const isCustomPrompt = customPrompts[promptId] !== undefined;
@@ -1501,6 +1530,9 @@ function openPromptDetail(promptId) {
 
     // 重新綁定事件監聽器
     bindDetailEventListeners();
+
+    // 設定詳情容器的類型標記
+    detailContainer.dataset.currentType = 'prompt';
 
     // 滾動到選中的卡片位置
     scrollToActiveCard(promptId);
@@ -2542,6 +2574,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('homeBtn').addEventListener('click', function () {
         console.log('🏠 [首頁按鈕] 被點擊');
 
+        // 防止重複點擊
+        const button = this;
+        if (button.disabled) {
+            console.log('🏠 [首頁按鈕] 按鈕已禁用，忽略點擊');
+            return;
+        }
+
+        button.disabled = true;
+        setTimeout(() => { button.disabled = false; }, 300); // 300ms 防抖
+
         // 檢查是否已經是首頁狀態
         const detailContainer = document.getElementById('promptDetailContainer');
         const cardsContainer = document.getElementById('promptCardsContainer');
@@ -2567,6 +2609,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 設定按鈕 - 支援切換功能（點一次開啟，再點一次關閉）
     document.getElementById('settingsBtn').addEventListener('click', function () {
         console.log('🔧 [設定按鈕] 被點擊');
+
+        // 防止重複點擊
+        const button = this;
+        if (button.disabled) {
+            console.log('🔧 [設定按鈕] 按鈕已禁用，忽略點擊');
+            return;
+        }
+
+        button.disabled = true;
+        setTimeout(() => { button.disabled = false; }, 300); // 300ms 防抖
+
         const detailContainer = document.getElementById('promptDetailContainer');
         const isSettingsPanelOpen = !detailContainer.classList.contains('d-none') &&
             detailContainer.dataset.currentType === 'settings';
@@ -2578,19 +2631,37 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('  - isSettingsPanelOpen:', isSettingsPanelOpen);
 
         if (isSettingsPanelOpen) {
-            // 如果設定面板已開啟，則關閉
+            // 如果設定面板已開啟，則關閉回到首頁
             console.log('🔧 [設定按鈕] 關閉設定面板');
             closeDetailPanel();
         } else {
-            // 如果設定面板未開啟，則開啟
+            // 如果設定面板未開啟，則開啟設定面板（可能從首頁或其他模式切換過來）
             console.log('🔧 [設定按鈕] 開啟設定面板');
             openSettingsPanel();
         }
     });
 
     // 標題新增按鈕 - 支援切換功能（點一次開啟，再點一次關閉）
-    document.getElementById('addPromptHeaderBtn').addEventListener('click', function () {
+    document.getElementById('addPromptHeaderBtn').addEventListener('click', function (e) {
         console.log('➕ [新增按鈕] 被點擊');
+        console.log('➕ [新增按鈕] 點擊位置:', `(${e.clientX}, ${e.clientY})`);
+        console.log('➕ [新增按鈕] 目標元素:', e.target);
+        console.log('➕ [新增按鈕] 當前元素:', e.currentTarget);
+
+        // 檢查點擊位置的所有元素
+        const elementsAtPoint = document.elementsFromPoint(e.clientX, e.clientY);
+        console.log('➕ [新增按鈕] 點擊位置的所有元素:', elementsAtPoint);
+
+        // 防止重複點擊
+        const button = this;
+        if (button.disabled) {
+            console.log('➕ [新增按鈕] 按鈕已禁用，忽略點擊');
+            return;
+        }
+
+        button.disabled = true;
+        setTimeout(() => { button.disabled = false; }, 300); // 300ms 防抖
+
         const isDesktop = window.innerWidth >= 768;
         console.log('➕ [新增按鈕] 裝置模式:', isDesktop ? '桌面' : '手機');
 
