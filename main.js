@@ -144,7 +144,7 @@ async function loadCards() {
             container.appendChild(tagHeader);
 
             const groupContainer = document.createElement('div');
-            groupContainer.className = 'd-flex flex-wrap gap-3 mb-4';
+            groupContainer.className = 'prompt-grid mb-4';
 
             promptsByTag[tag].forEach(defaultPrompt => {
                 const currentData = getPromptData(defaultPrompt.id);
@@ -180,7 +180,16 @@ function openModal(promptId) {
     const isDesktop = window.innerWidth >= 768;
 
     if (isDesktop) {
-        openPromptDetail(promptId);
+        // 檢查當前是否已經開啟了詳情區域
+        const detailContainer = document.getElementById('promptDetailContainer');
+        const currentPromptId = detailContainer.dataset.currentPromptId;
+
+        // 如果點擊的是同一個卡片，則切換開關
+        if (currentPromptId === promptId && !detailContainer.classList.contains('d-none')) {
+            closePromptDetail();
+        } else {
+            openPromptDetail(promptId);
+        }
     } else {
         openPromptModal(promptId);
     }
@@ -190,10 +199,13 @@ function openPromptDetail(promptId) {
     const data = getPromptData(promptId);
     if (!data) return;
 
+    // 設定 active 狀態
+    setActiveCard(promptId);
+
     // 創建詳情區域的 HTML 內容
     const detailHTML = `
         <div class="card h-100">
-            <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="card-header d-flex justify-content-between align-items-center p-4">
                 <h5 class="mb-0" id="promptDetailTitle">提示詞詳情</h5>
                 <button type="button" class="btn-close" onclick="closePromptDetail()" aria-label="Close"></button>
             </div>
@@ -206,9 +218,9 @@ function openPromptDetail(promptId) {
                     <label for="detailPromptAuthor" class="form-label">作者：</label>
                     <input type="text" class="form-control" id="detailPromptAuthor" readonly>
                 </div>
-                <div class="mb-3">
+                <div>
                     <label for="detailPromptTextarea" class="form-label">內容：</label>
-                    <textarea class="form-control" id="detailPromptTextarea" rows="15" readonly></textarea>
+                    <textarea class="form-control" id="detailPromptTextarea" readonly></textarea>
                 </div>
             </div>
             <div class="card-footer d-flex justify-content-between">
@@ -216,9 +228,9 @@ function openPromptDetail(promptId) {
                     <button type="button" class="btn btn-danger d-none" id="resetDetailPromptBtn">重置</button>
                 </div>
                 <div>
-                    <button type="button" class="btn btn-secondary me-2" id="copyDetailPromptBtn">複製</button>
-                    <button type="button" class="btn btn-secondary me-2" id="useGptsFromDetailBtn">在 ChatGPT 使用</button>
-                    <button type="button" class="btn btn-secondary" id="useChatwiseGptsFromDetailBtn">在 ChatWise 使用</button>
+                    <button type="button" class="btn btn-dark me-2" id="copyDetailPromptBtn">複製</button>
+                    <button type="button" class="btn btn-dark me-2" id="useGptsFromDetailBtn">在 ChatGPT 使用</button>
+                    <button type="button" class="btn btn-dark" id="useChatwiseGptsFromDetailBtn">在 ChatWise 使用</button>
                 </div>
             </div>
         </div>
@@ -240,6 +252,10 @@ function openPromptDetail(promptId) {
     document.getElementById('detailPromptAuthor').value = data.author;
     document.getElementById('detailPromptTextarea').value = data.content;
 
+    // 自動調整 textarea 高度
+    const textarea = document.getElementById('detailPromptTextarea');
+    autoResizeTextarea(textarea);
+
     // 儲存當前提示詞 ID
     detailContainer.dataset.currentPromptId = promptId;
 
@@ -258,6 +274,9 @@ function openPromptDetail(promptId) {
 
     // 重新綁定事件監聽器
     bindDetailEventListeners();
+
+    // 滾動到選中的卡片位置
+    scrollToActiveCard(promptId);
 }
 
 function closePromptDetail() {
@@ -267,6 +286,9 @@ function closePromptDetail() {
     cardsContainer.className = 'col-12';
     detailContainer.className = 'col-9 d-none';
     detailContainer.innerHTML = '';
+
+    // 清除所有卡片的 active 狀態
+    clearActiveCards();
 
     // 清空當前提示詞 ID
     detailContainer.removeAttribute('data-current-prompt-id');
@@ -388,6 +410,11 @@ function resetDetailPrompt() {
         document.getElementById('detailPromptTitle').value = defaultData.title;
         document.getElementById('detailPromptAuthor').value = defaultData.author;
         document.getElementById('detailPromptTextarea').value = defaultData.content;
+
+        // 自動調整 textarea 高度
+        const textarea = document.getElementById('detailPromptTextarea');
+        autoResizeTextarea(textarea);
+
         localStorage.removeItem(`gpts_prompt_${currentPromptId}`);
 
         const cardElement = document.querySelector(`.prompt-card[data-prompt-id="${currentPromptId}"]`);
@@ -402,6 +429,57 @@ function updateLink() {
     const link = document.getElementById('chatgptLink');
     const encodedValue = encodeURIComponent(textarea.value + '\n\n請說明如何使用這個提示詞。');
     link.href = `http://chatgpt.com/?q=${encodedValue}`;
+}
+
+// 設定指定卡片為 active 狀態
+function setActiveCard(promptId) {
+    // 先清除所有 active 狀態
+    clearActiveCards();
+
+    // 為指定卡片添加 active 狀態
+    const cardElement = document.querySelector(`.prompt-card[data-prompt-id="${promptId}"]`);
+    if (cardElement) {
+        cardElement.classList.add('active');
+    }
+}
+
+// 清除所有卡片的 active 狀態
+function clearActiveCards() {
+    const activeCards = document.querySelectorAll('.prompt-card.active');
+    activeCards.forEach(card => {
+        card.classList.remove('active');
+    });
+}
+
+// 自動調整 textarea 高度
+function autoResizeTextarea(textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = (textarea.scrollHeight - 20) + 'px';
+}
+
+// 滾動到選中的卡片位置
+function scrollToActiveCard(promptId) {
+    // 使用 setTimeout 確保 DOM 已經更新完成
+    setTimeout(() => {
+        const cardElement = document.querySelector(`.prompt-card[data-prompt-id="${promptId}"]`);
+        const cardsContainer = document.getElementById('promptCardsContainer');
+
+        if (cardElement && cardsContainer) {
+            // 計算卡片相對於容器的位置
+            const cardRect = cardElement.getBoundingClientRect();
+            const containerRect = cardsContainer.getBoundingClientRect();
+
+            // 計算需要滾動的距離
+            const scrollTop = cardsContainer.scrollTop;
+            const cardOffsetTop = cardRect.top - containerRect.top + scrollTop;
+
+            // 滾動到卡片位置（稍微往上一點以獲得更好的視覺效果）
+            cardsContainer.scrollTo({
+                top: Math.max(0, cardOffsetTop - 20),
+                behavior: 'smooth'
+            });
+        }
+    }, 100);
 }
 
 // 全域函數，供 HTML 調用

@@ -39,24 +39,60 @@ body {
     box-shadow: 0 4px 8px rgba(13, 110, 253, 0.2);
 }
 
+.prompt-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+/* 當卡片容器在窄列（col-3）時的特殊設定 */
+.col-3 .prompt-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+}
+
 .prompt-card {
-    flex: 1 1 calc(25% - 1rem);
-    min-width: 280px;
-    max-width: calc(25% - 1rem);
     border: 1px solid #dee2e6;
     border-radius: 0.5rem;
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    transition: transform 0.1s ease-in-out, box-shadow 0.2s ease-in-out, background-color 0.1s ease-in-out;
     cursor: pointer;
     background-color: #fff;
     display: flex;
     flex-direction: column;
     text-align: center;
+    min-height: 80px;
+    /* 確保所有卡片有最小高度 */
+}
+
+.prompt-card.active {
+    background-color: #212529 !important;
+    color: #ffffff !important;
+}
+
+.card-header,
+.card-footer {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+}
+
+/* 在窄容器中調整卡片樣式 */
+.col-3 .prompt-card {
+    min-height: 80px;
+}
+
+.col-3 .prompt-card .card-body {
+    padding: 1rem;
+}
+
+.col-3 .prompt-card .card-title {
+    font-size: 1rem;
+    line-height: 1.3;
 }
 
 .prompt-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    transform: translateY(-3px);
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
 }
 
 .prompt-card .card-body {
@@ -64,7 +100,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 1.5rem;
+    padding: 0.5rem;
     text-decoration: none;
 }
 
@@ -87,9 +123,26 @@ body {
 }
 
 @media (max-width: 767.98px) {
-    .prompt-card {
-        flex: 1 1 100%;
-        max-width: 100%;
+    .prompt-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .prompt-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 992px) and (max-width: 1199.98px) {
+    .prompt-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (min-width: 1200px) {
+    .prompt-grid {
+        grid-template-columns: repeat(4, 1fr);
     }
 }
 
@@ -112,12 +165,13 @@ body {
     width: 80px;
 }
 
-#promptDetailContainer {
+/* #promptDetailContainer {
     transition: all 0.3s ease-in-out;
-}
+} */
 
 #promptCardsContainer {
-    transition: all 0.3s ease-in-out;
+    /* transition: all 0.3s ease-in-out; */
+    padding-right: 15px;
 }
 
 /* 計算可用高度：100vh 減去標題、輸入區域、按鈕等固定元素的高度 */
@@ -127,6 +181,13 @@ body {
     /* 重要：允許 flex 項目縮小 */
     overflow: hidden;
     padding: 15px 0px;
+    margin: 0;
+    /* 覆蓋 Bootstrap row 的負 margin */
+}
+
+.main-content-area>[class*="col-"] {
+    padding-left: 0;
+    padding-right: 0;
 }
 
 #promptCardsContainer.col-3,
@@ -134,6 +195,7 @@ body {
     height: 100%;
     overflow-y: auto;
     padding-right: 15px;
+    /* padding-left: 15px; */
 }
 
 #promptDetailContainer.col-9 {
@@ -174,7 +236,10 @@ body {
 
 #detailPromptTextarea {
     resize: vertical;
-    min-height: 300px;
+    min-height: auto;
+    height: auto;
+    overflow: hidden;
+    padding: .75rem;
 }
 
 /* 優化卡片容器的滾動體驗 */
