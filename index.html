@@ -283,6 +283,64 @@
         </div>
     </div>
 
+    <!-- 新增版本 Modal -->
+    <div class="modal fade" id="addVersionModal" tabindex="-1" aria-labelledby="addVersionModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addVersionModalLabel"><i class="bi bi-plus-circle"></i> 新增版本</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addVersionForm">
+                        <div class="mb-3">
+                            <label for="newVersionNumber" class="form-label">版本號：</label>
+                            <input type="text" class="form-control" id="newVersionNumber" readonly>
+                            <div class="form-text">版本號將自動生成</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newVersionName" class="form-label">版本名稱 <span
+                                    class="text-danger">*</span>：</label>
+                            <input type="text" class="form-control" id="newVersionName" placeholder="請輸入版本名稱" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newVersionDescription" class="form-label">版本說明 <span
+                                    class="text-danger">*</span>：</label>
+                            <input type="text" class="form-control" id="newVersionDescription"
+                                placeholder="請簡短說明此版本的主要變更" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="baseVersionSelect" class="form-label">基於版本：</label>
+                            <select class="form-select" id="baseVersionSelect">
+                                <!-- 版本選項會動態生成 -->
+                            </select>
+                            <div class="form-text">新版本將複製所選版本的內容作為起始點</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newVersionContent" class="form-label">內容：</label>
+                            <textarea class="form-control" id="newVersionContent" rows="10"
+                                placeholder="版本內容將從基於版本複製"></textarea>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="setAsActiveVersion">
+                            <label class="form-check-label" for="setAsActiveVersion">
+                                設為預設版本
+                            </label>
+                            <div class="form-text">勾選後，此版本將成為提示詞的預設版本</div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-dark" id="saveNewVersionBtn">
+                        <i class="bi bi-check"></i> 建立版本
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 隱藏的檔案輸入用於匯入 -->
     <input type="file" id="importFileInput" accept=".yml,.yaml" style="display: none;">
 

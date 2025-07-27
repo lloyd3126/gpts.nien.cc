@@ -205,8 +205,6 @@ body {
 }
 
 #promptDetailContainer .card {
-    height: 100%;
-    max-height: 100%;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -278,4 +276,42 @@ body {
 
 #promptDetailContainer .card-body::-webkit-scrollbar-thumb:hover {
     background: #a8a8a8;
+}
+
+/* 確保所有按鈕都有正確的邊框 */
+.input-group #addVersionBtn,
+.input-group #deleteVersionBtn,
+.input-group #setActiveVersionBtn {
+    border: 1px solid #dee2e6 !important;
+    border-left-width: 0 !important;
+}
+
+/* 第一個按鈕保持左邊框 */
+.input-group #addVersionBtn {
+    border-left-width: 1px !important;
+}
+
+/* 當新增版本按鈕是唯一顯示的按鈕時，恢復完整圓角 */
+.input-group #addVersionBtn:only-child,
+.input-group #addVersionBtn:last-child {
+    border-radius: 0.375rem !important;
+}
+
+/* 動態應用的最右邊按鈕圓角樣式 - 這是最重要的規則 */
+.input-group .last-btn-radius {
+    border-top-right-radius: 0.375rem !important;
+    border-bottom-right-radius: 0.375rem !important;
+}
+
+/* 備用樣式：如果 JavaScript 失效時的後備方案 */
+.input-group button:last-child {
+    border-top-right-radius: 0.375rem !important;
+    border-bottom-right-radius: 0.375rem !important;
+}
+
+/* 確保顯示狀態的按鈕有正確的圓角 */
+.input-group #deleteVersionBtn[style*="block"].last-btn-radius,
+.input-group #setActiveVersionBtn[style*="block"].last-btn-radius {
+    border-top-right-radius: 0.375rem !important;
+    border-bottom-right-radius: 0.375rem !important;
 }

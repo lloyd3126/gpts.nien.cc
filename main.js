@@ -9,6 +9,7 @@ let originalYamlData = null; // 儲存原始 YAML 資料
 let customPrompts = {}; // 自訂提示詞
 let customVersions = {}; // 自訂版本
 let modifiedPrompts = {}; // 修改過的提示詞
+let personalTags = []; // 個人標籤陣列
 
 // 從 data.yml 載入提示詞資料
 async function loadPromptsFromYaml() {
@@ -70,17 +71,13 @@ async function loadPromptsFromYaml() {
 }
 
 function getPromptData(id) {
-    console.log('=== getPromptData 開始 ===');
-    console.log('查詢提示詞 ID:', id);
-
     // 首先檢查是否為自訂提示詞
     if (customPrompts[id]) {
-        console.log('✅ 在 customPrompts 中找到');
         const customPrompt = customPrompts[id];
         const activeVersion = customPrompt.metadata.activeVersion || 'v1';
         const versionData = customPrompt[activeVersion];
 
-        const result = {
+        return {
             id: id,
             title: customPrompt.metadata.displayTitle,
             author: customPrompt.metadata.author,
@@ -88,59 +85,37 @@ function getPromptData(id) {
             tag: customPrompt.metadata.tag,
             draft: customPrompt.metadata.draft || false
         };
-        console.log('customPrompts 查詢結果:', result);
-        console.log('=== getPromptData 完成 (customPrompts) ===');
-        return result;
     }
 
     // 檢查原始提示詞
     const defaultData = defaultPrompts.find(p => p.id === id);
-    console.log('defaultPrompts 查詢結果:', defaultData ? '找到' : '未找到');
     if (!defaultData) {
-        console.log('❌ 在 defaultPrompts 中未找到');
-        console.log('=== getPromptData 完成 (null) ===');
         return null;
     }
 
     // 檢查是否有自訂版本
     if (customVersions[id]) {
-        console.log('📝 發現 customVersions');
         const versions = customVersions[id];
         // 這裡可以根據需要選擇特定版本
     }
 
     // 檢查是否有修改
     if (modifiedPrompts[id]) {
-        console.log('✏️ 發現 modifiedPrompts');
-        const result = { ...defaultData, ...modifiedPrompts[id] };
-        console.log('modifiedPrompts 合併結果:', result);
-        console.log('=== getPromptData 完成 (modifiedPrompts) ===');
-        return result;
+        return { ...defaultData, ...modifiedPrompts[id] };
     }
 
     // 優先檢查新的統一 localStorage 結構
     try {
-        console.log('🔍 檢查 localStorage customPromptData...');
         const customData = JSON.parse(localStorage.getItem('customPromptData') || '{}');
         if (customData[id]) {
-            console.log('✅ 在 localStorage customPromptData 中找到');
             const custom = customData[id];
             const activeVersion = custom.metadata?.activeVersion || 'v1';
             const versionData = custom.versions?.[activeVersion];
 
-            console.log('localStorage 中的資料:', {
-                metadata: custom.metadata,
-                activeVersion,
-                versionData: versionData ? '有資料' : '無資料'
-            });
-
             if (versionData) {
-                console.log('從 localStorage 讀取的標籤:', custom.metadata.tag, '，提示詞ID:', id);
-
                 // 如果是完全自訂的提示詞（不存在於 defaultPrompts 中）
                 if (!defaultData) {
-                    console.log('🆕 完全自訂的提示詞');
-                    const result = {
+                    return {
                         id: id,
                         title: custom.metadata.displayTitle || versionData.name || id,
                         author: custom.metadata.author || '',
@@ -148,14 +123,10 @@ function getPromptData(id) {
                         tag: custom.metadata.tag || '',
                         draft: custom.metadata.draft || false
                     };
-                    console.log('完全自訂提示詞結果:', result);
-                    console.log('=== getPromptData 完成 (localStorage 完全自訂) ===');
-                    return result;
                 }
 
                 // 如果是對現有提示詞的修改
-                console.log('✏️ 對現有提示詞的修改');
-                const result = {
+                return {
                     ...defaultData,
                     title: custom.metadata.displayTitle !== undefined ? custom.metadata.displayTitle : defaultData?.title,
                     author: custom.metadata.author !== undefined ? custom.metadata.author : defaultData?.author,
@@ -163,40 +134,25 @@ function getPromptData(id) {
                     tag: custom.metadata.tag !== undefined ? custom.metadata.tag : defaultData?.tag,
                     draft: custom.metadata.draft !== undefined ? custom.metadata.draft : false
                 };
-                console.log('修改現有提示詞結果:', result);
-                console.log('=== getPromptData 完成 (localStorage 修改) ===');
-                return result;
             }
-        } else {
-            console.log('❌ 在 localStorage customPromptData 中未找到');
         }
     } catch (e) {
-        console.error('❌ 解析 customPromptData 失敗:', e);
+        // 解析失敗時忽略錯誤
     }
 
     // 回退到舊的 localStorage 結構
-    console.log('🔍 檢查舊的 localStorage 結構...');
     const storedData = localStorage.getItem(`gpts_prompt_${id}`);
     if (storedData) {
-        console.log('✅ 在舊 localStorage 結構中找到');
         try {
             const parsedData = JSON.parse(storedData);
             if (parsedData && parsedData.id === id) {
-                const result = { ...defaultData, ...parsedData };
-                console.log('舊 localStorage 結構結果:', result);
-                console.log('=== getPromptData 完成 (舊 localStorage) ===');
-                return result;
+                return { ...defaultData, ...parsedData };
             }
         } catch (e) {
-            console.error("❌ Error parsing localStorage data for", id, e);
             localStorage.removeItem(`gpts_prompt_${id}`);
         }
-    } else {
-        console.log('❌ 在舊 localStorage 結構中未找到');
     }
 
-    console.log('🔄 返回 defaultData');
-    console.log('=== getPromptData 完成 (defaultData) ===');
     return defaultData;
 } function savePromptToLocalStorage() {
     const modal = document.getElementById('promptModal');
@@ -472,7 +428,7 @@ function loadPersonalSettings() {
 
             // 更新個人標籤：加入新發現的標籤（但不是全域標籤）
             allUsedTags.forEach(tag => {
-                if (!tagOrder.includes(tag) && !personalTags.includes(tag)) {
+                if (!allTags.includes(tag) && !personalTags.includes(tag)) {
                     console.log('發現新的個人標籤:', tag);
                     personalTags.push(tag);
                 }
@@ -594,10 +550,10 @@ function openAddPromptForm() {
             </div>
             <div class="card-footer d-flex justify-content-between">
                 <div>
-                    <button type="button" class="btn btn-outline-secondary" onclick="closeAddPromptForm()">取消</button>
+                    <button type="button" class="btn btn-dark" onclick="closeAddPromptForm()">取消</button>
                 </div>
                 <div>
-                    <button type="button" class="btn btn-success" id="saveNewPromptDetailBtn"><i class="bi bi-check"></i> 建立提示詞</button>
+                    <button type="button" class="btn btn-dark" id="saveNewPromptDetailBtn"><i class="bi bi-check"></i> 建立提示詞</button>
                 </div>
             </div>
         </div>
@@ -656,6 +612,9 @@ const detailTemplates = {
                 <button type="button" class="btn btn-dark btn-lg" id="manageTagsDetailBtn">
                     <i class="bi bi-tags"></i> 管理標籤
                 </button>
+                <button type="button" class="btn btn-dark btn-lg" id="dataManagementDetailBtn">
+                    <i class="bi bi-trash"></i> 資料管理
+                </button>
                 <button type="button" class="btn btn-dark btn-lg" id="exportDataDetailBtn">
                     <i class="bi bi-download"></i> 匯出資料
                 </button>
@@ -665,6 +624,105 @@ const detailTemplates = {
                 <button type="button" class="btn btn-dark btn-lg" id="aboutDetailBtn">
                     <i class="bi bi-info-circle"></i> 關於
                 </button>
+            </div>
+        `
+    },
+    'data-management': {
+        title: '資料管理',
+        icon: 'bi-trash',
+        content: `
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle"></i>
+                <strong>注意：</strong>以下操作會永久刪除資料，請謹慎操作！
+            </div>
+
+            <!-- localStorage 狀態資訊 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0"><i class="bi bi-info-circle"></i> 儲存狀態</h6>
+                </div>
+                <div class="card-body">
+                    <div id="storageInfo">
+                        <div class="d-flex justify-content-between">
+                            <span>自訂提示詞 (customPrompts):</span>
+                            <span id="customPromptsCount">-</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>自訂資料 (customPromptData):</span>
+                            <span id="customPromptDataCount">-</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>個人標籤:</span>
+                            <span id="personalTagsCount">-</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>統一標籤:</span>
+                            <span id="allTagsCount">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 清除選項 -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0"><i class="bi bi-trash"></i> 清除選項</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-dark" id="clearCustomPromptsBtn">
+                            <i class="bi bi-trash"></i> 清除自訂提示詞 (customPrompts)
+                        </button>
+                        <button type="button" class="btn btn-dark" id="clearCustomPromptDataBtn">
+                            <i class="bi bi-trash"></i> 清除自訂資料 (customPromptData)
+                        </button>
+                        <button type="button" class="btn btn-dark" id="clearPersonalTagsBtn">
+                            <i class="bi bi-tag"></i> 清除個人標籤
+                        </button>
+                        <hr>
+                        <button type="button" class="btn btn-dark" id="clearAllDataBtn">
+                            <i class="bi bi-exclamation-triangle"></i> 清除所有資料
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 資料同步選項 -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="card-title mb-0"><i class="bi bi-arrow-repeat"></i> 資料同步</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-dark" id="syncDataBtn">
+                            <i class="bi bi-arrow-repeat"></i> 修復資料一致性
+                        </button>
+                        <button type="button" class="btn btn-dark" id="verifyDataBtn">
+                            <i class="bi bi-check-circle"></i> 驗證資料完整性
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 資料結構統一 -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="card-title mb-0"><i class="bi bi-diagram-3"></i> 資料結構優化</h6>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>建議操作：</strong>目前系統使用兩個重複的資料結構，建議統一為單一結構以提升效能和避免不一致問題。
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-dark" id="unifyDataStructureBtn">
+                            <i class="bi bi-arrow-down-up"></i> 統一為 customPromptData 結構
+                        </button>
+                        <button type="button" class="btn btn-dark" id="checkDataRedundancyBtn">
+                            <i class="bi bi-search"></i> 檢查資料冗餘
+                        </button>
+                    </div>
+                </div>
             </div>
         `
     },
@@ -836,6 +894,10 @@ function bindDetailEvents(type, data = null) {
             bindTagManagementDetailEvents();
             loadTagManagementDetailData();
             break;
+        case 'data-management':
+            bindDataManagementEvents();
+            loadDataManagementInfo();
+            break;
     }
 
     console.log(`=== bindDetailEvents 完成 (${type}) ===`);
@@ -853,6 +915,16 @@ function bindSettingsDetailEvents() {
             openDetailPanel('tag-management');
         });
         console.log('✅ 綁定管理標籤按鈕事件');
+    }
+
+    // 資料管理按鈕
+    const dataManagementBtn = document.getElementById('dataManagementDetailBtn');
+    if (dataManagementBtn) {
+        dataManagementBtn.addEventListener('click', function () {
+            console.log('點擊資料管理按鈕');
+            openDetailPanel('data-management');
+        });
+        console.log('✅ 綁定資料管理按鈕事件');
     }
 
     // 匯出資料按鈕
@@ -1011,7 +1083,7 @@ async function saveNewPromptFromDetail() {
     customPrompts[newPrompt.id] = promptData;
 
     // 如果是新標籤，加入到個人標籤
-    if (!tagOrder.includes(newPrompt.tag) && !personalTags.includes(newPrompt.tag)) {
+    if (!allTags.includes(newPrompt.tag) && !personalTags.includes(newPrompt.tag)) {
         personalTags.push(newPrompt.tag);
     }
 
@@ -1116,7 +1188,7 @@ function saveNewPrompt() {
     customPrompts[newPrompt.id] = promptData;
 
     // 如果是新標籤，加入到個人標籤
-    if (!tagOrder.includes(newPrompt.tag) && !personalTags.includes(newPrompt.tag)) {
+    if (!allTags.includes(newPrompt.tag) && !personalTags.includes(newPrompt.tag)) {
         personalTags.push(newPrompt.tag);
     }
 
@@ -1211,9 +1283,20 @@ function openPromptDetail(promptId) {
                 </div>
                 <div class="mb-3">
                     <label for="detailPromptVersion" class="form-label">版本：</label>
-                    <select class="form-select" id="detailPromptVersion" disabled>
-                        <!-- 版本選項會動態生成 -->
-                    </select>
+                    <div class="input-group">
+                        <select class="form-select" id="detailPromptVersion" disabled>
+                            <!-- 版本選項會動態生成 -->
+                        </select>
+                        <button type="button" class="btn btn-outline-dark" id="addVersionBtn" title="新增版本">
+                            新增
+                        </button>
+                        <button type="button" class="btn btn-outline-dark" id="deleteVersionBtn" title="刪除版本" style="display: none;">
+                            刪除
+                        </button>
+                        <button type="button" class="btn btn-outline-dark" id="setActiveVersionBtn" title="設為預設版本" style="display: none;">
+                            預設
+                        </button>
+                    </div>
                 </div>
                 <div class="mb-3">
                     <label for="detailPromptVersionName" class="form-label">版本名稱：</label>
@@ -1280,6 +1363,9 @@ function openPromptDetail(promptId) {
     const versionDescInput = document.getElementById('detailPromptVersionDescription');
     const textareaInput = document.getElementById('detailPromptTextarea');
     const resetBtn = document.getElementById('resetDetailPromptBtn');
+    const addVersionBtn = document.getElementById('addVersionBtn');
+    const deleteVersionBtn = document.getElementById('deleteVersionBtn');
+    const setActiveVersionBtn = document.getElementById('setActiveVersionBtn');
 
     if (isEditMode || currentEditingPromptId === promptId) {
         // 編輯模式
@@ -1293,6 +1379,9 @@ function openPromptDetail(promptId) {
         versionDescInput.readOnly = false;
         textareaInput.readOnly = false;
         resetBtn.classList.remove('d-none');
+        if (addVersionBtn) addVersionBtn.disabled = true; // 編輯模式下禁用新增版本按鈕
+        if (deleteVersionBtn) deleteVersionBtn.disabled = true; // 編輯模式下禁用刪除版本按鈕
+        if (setActiveVersionBtn) setActiveVersionBtn.disabled = true; // 編輯模式下禁用設為預設版本按鈕
         currentEditingPromptId = promptId;
     } else {
         // 檢視模式
@@ -1306,6 +1395,9 @@ function openPromptDetail(promptId) {
         versionDescInput.readOnly = true;
         textareaInput.readOnly = true;
         resetBtn.classList.add('d-none');
+        if (addVersionBtn) addVersionBtn.disabled = false; // 檢視模式下啟用新增版本按鈕
+        if (deleteVersionBtn) deleteVersionBtn.disabled = false; // 檢視模式下啟用刪除版本按鈕
+        if (setActiveVersionBtn) setActiveVersionBtn.disabled = false; // 檢視模式下啟用設為預設版本按鈕
     }
 
     // 重新綁定事件監聽器
@@ -1377,6 +1469,27 @@ function bindDetailEventListeners() {
         console.log('✅ 綁定編輯按鈕事件');
     }
 
+    // 新增版本按鈕
+    const addVersionBtn = document.getElementById('addVersionBtn');
+    if (addVersionBtn) {
+        addVersionBtn.addEventListener('click', openAddVersionModal);
+        console.log('✅ 綁定新增版本按鈕事件');
+    }
+
+    // 刪除版本按鈕
+    const deleteVersionBtn = document.getElementById('deleteVersionBtn');
+    if (deleteVersionBtn) {
+        deleteVersionBtn.addEventListener('click', confirmDeleteVersion);
+        console.log('✅ 綁定刪除版本按鈕事件');
+    }
+
+    // 設為預設版本按鈕
+    const setActiveVersionBtn = document.getElementById('setActiveVersionBtn');
+    if (setActiveVersionBtn) {
+        setActiveVersionBtn.addEventListener('click', setAsActiveVersion);
+        console.log('✅ 綁定設為預設版本按鈕事件');
+    }
+
     // ChatWise 按鈕
     const chatwiseBtn = document.getElementById('useChatwiseGptsFromDetailBtn');
     if (chatwiseBtn) {
@@ -1437,7 +1550,7 @@ function bindDetailEventListeners() {
 
                 // 如果是新的個人標籤，確保它在 personalTags 中
                 const newTag = tagSelect.value;
-                if (!tagOrder.includes(newTag) && !personalTags.includes(newTag)) {
+                if (!allTags.includes(newTag) && !personalTags.includes(newTag)) {
                     console.log('📌 添加新的個人標籤:', newTag);
                     personalTags.push(newTag);
                     // 儲存個人標籤
@@ -1621,16 +1734,20 @@ function populateDetailForm(promptId, displayData, isCustomPrompt = false) {
     // 使用自訂資料或原始資料
     const metadata = customData?.metadata || rawData.metadata;
     const activeVersion = metadata.activeVersion || 'v1';
+    console.log(`[VERSION] 載入版本詳情: ${promptId}, 啟用版本: ${activeVersion}`);
 
     // 版本資料優先使用自訂資料，如果沒有則使用原始資料
     let versionData;
     if (customData?.versions?.[activeVersion]) {
         versionData = customData.versions[activeVersion];
+        console.log(`[VERSION] 使用自訂版本資料: ${activeVersion}`);
     } else if (isCustomPrompt) {
         // 對於自訂提示詞，直接使用版本資料
         versionData = rawData[activeVersion];
+        console.log(`[VERSION] 使用自訂提示詞版本資料: ${activeVersion}`);
     } else {
         versionData = rawData[activeVersion];
+        console.log(`[VERSION] 使用原始版本資料: ${activeVersion}`);
     }
 
     // 填充基本資訊
@@ -1648,23 +1765,33 @@ function populateDetailForm(promptId, displayData, isCustomPrompt = false) {
     if (isCustomPrompt) {
         // 對於自訂提示詞，只從自訂資料中獲取版本
         allVersions = Object.keys(rawData).filter(key => key.startsWith('v'));
+        console.log(`[VERSION] 自訂提示詞所有版本: ${allVersions.join(', ')}`);
     } else {
         // 對於原始提示詞，合併原始版本和自訂版本
         const originalVersions = Object.keys(rawData).filter(key => key.startsWith('v'));
         const customVersionsList = customData?.versions ? Object.keys(customData.versions) : [];
         allVersions = [...new Set([...originalVersions, ...customVersionsList])]; // 去重
+        console.log(`[VERSION] 原始版本: ${originalVersions.join(', ')}, 自訂版本: ${customVersionsList.join(', ')}, 合併版本: ${allVersions.join(', ')}`);
     }
     allVersions.sort(); // 排序版本
 
     allVersions.forEach(version => {
         const option = document.createElement('option');
         option.value = version;
-        option.textContent = version;
+
+        // 如果是啟用版本，新增星星標記
         if (version === activeVersion) {
+            option.textContent = `${version} - 預設版本`;
             option.selected = true;
+        } else {
+            option.textContent = version;
         }
+
         versionSelect.appendChild(option);
     });
+
+    // 更新刪除版本按鈕的顯示狀態
+    updateDeleteVersionButtonVisibility(allVersions, activeVersion);
 
     // 填充當前版本的詳細資訊
     if (versionData) {
@@ -1676,15 +1803,22 @@ function populateDetailForm(promptId, displayData, isCustomPrompt = false) {
     // 綁定版本切換事件
     versionSelect.onchange = function () {
         const selectedVersion = this.value;
+        console.log(`[VERSION] 切換到版本: ${selectedVersion}`);
+
+        // 更新刪除版本按鈕的顯示狀態
+        updateDeleteVersionButtonVisibility(allVersions, selectedVersion);
 
         // 優先使用自訂版本資料
         let selectedVersionData;
         if (customData?.versions?.[selectedVersion]) {
             selectedVersionData = customData.versions[selectedVersion];
+            console.log(`[VERSION] 載入自訂版本資料: ${selectedVersion}`);
         } else if (isCustomPrompt) {
             selectedVersionData = rawData[selectedVersion];
+            console.log(`[VERSION] 載入自訂提示詞版本資料: ${selectedVersion}`);
         } else {
             selectedVersionData = rawData[selectedVersion];
+            console.log(`[VERSION] 載入原始版本資料: ${selectedVersion}`);
         }
 
         if (selectedVersionData) {
@@ -1695,8 +1829,87 @@ function populateDetailForm(promptId, displayData, isCustomPrompt = false) {
             // 重新調整 textarea 高度
             const textarea = document.getElementById('detailPromptTextarea');
             autoResizeTextarea(textarea);
+            console.log(`[VERSION] 版本資料載入完成: ${selectedVersion}`);
+        } else {
+            console.warn(`[VERSION] 警告: 找不到版本資料 ${selectedVersion}`);
         }
     };
+}
+
+// 更新刪除版本按鈕的顯示狀態
+function updateDeleteVersionButtonVisibility(allVersions, currentVersion) {
+    const deleteVersionBtn = document.getElementById('deleteVersionBtn');
+    const setActiveVersionBtn = document.getElementById('setActiveVersionBtn');
+
+    // 獲取當前提示詞的啟用版本
+    const detailContainer = document.getElementById('promptDetailContainer');
+    const currentPromptId = detailContainer.dataset.currentPromptId;
+    const isCustomPrompt = customPrompts[currentPromptId] !== undefined;
+
+    let activeVersion = 'v1';
+    if (isCustomPrompt) {
+        activeVersion = customPrompts[currentPromptId]?.metadata?.activeVersion || 'v1';
+    } else {
+        try {
+            const allCustomData = JSON.parse(localStorage.getItem('customPromptData') || '{}');
+            const customData = allCustomData[currentPromptId];
+            activeVersion = customData?.metadata?.activeVersion || originalYamlData?.prompt?.[currentPromptId]?.metadata?.activeVersion || 'v1';
+        } catch (e) {
+            activeVersion = originalYamlData?.prompt?.[currentPromptId]?.metadata?.activeVersion || 'v1';
+        }
+    }
+
+    // 刪除按鈕邏輯：版本數量 > 1 且當前版本不是 v1
+    const shouldShowDelete = allVersions.length > 1 && currentVersion !== 'v1';
+    const shouldShowSetActive = currentVersion !== activeVersion;
+
+    if (deleteVersionBtn) {
+        deleteVersionBtn.style.display = shouldShowDelete ? 'block' : 'none';
+    }
+
+    // 設為預設版本按鈕邏輯：當前版本不是已啟用的版本
+    if (setActiveVersionBtn) {
+        setActiveVersionBtn.style.display = shouldShowSetActive ? 'block' : 'none';
+    }
+
+    // 動態調整最右邊按鈕的圓角樣式
+    updateVersionButtonStyles(shouldShowDelete, shouldShowSetActive);
+}
+
+// 新增函數：更新版本按鈕的樣式
+function updateVersionButtonStyles(showDelete, showSetActive) {
+    const addVersionBtn = document.getElementById('addVersionBtn');
+    const deleteVersionBtn = document.getElementById('deleteVersionBtn');
+    const setActiveVersionBtn = document.getElementById('setActiveVersionBtn');
+
+    // 移除所有自訂圓角類別
+    if (addVersionBtn) {
+        addVersionBtn.classList.remove('last-btn-radius');
+    }
+    if (deleteVersionBtn) {
+        deleteVersionBtn.classList.remove('last-btn-radius');
+    }
+    if (setActiveVersionBtn) {
+        setActiveVersionBtn.classList.remove('last-btn-radius');
+    }
+
+    // 簡化邏輯：找到最後一個顯示的按鈕並添加圓角
+    if (showSetActive) {
+        // 如果設為預設版本按鈕顯示，它總是最後一個
+        if (setActiveVersionBtn) {
+            setActiveVersionBtn.classList.add('last-btn-radius');
+        }
+    } else if (showDelete) {
+        // 如果只有刪除按鈕顯示，它就是最後一個
+        if (deleteVersionBtn) {
+            deleteVersionBtn.classList.add('last-btn-radius');
+        }
+    } else {
+        // 如果兩個按鈕都不顯示，新增版本按鈕是最後一個
+        if (addVersionBtn) {
+            addVersionBtn.classList.add('last-btn-radius');
+        }
+    }
 }
 
 // 自動調整文本區域高度
@@ -2134,6 +2347,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadCards();
     // updateLink(); // 移除，因為主頁面不再有輸入框
 
+    // 修復資料一致性
+    syncDataConsistency();
+
+    // 綁定標籤編輯相關事件（需要在 DOM 載入後立即綁定）
+    bindTagEditEvents();
+
+    // 驗證 localStorage 版本資料
+    verifyLocalStorageVersions();
+
     // 原有的事件監聽器
     resetBtn.addEventListener('click', resetPrompt);
     document.getElementById('useGptsFromModalBtn').addEventListener('click', openChatGptWithModalContent);
@@ -2191,6 +2413,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 匯入檔案處理
     document.getElementById('importFileInput').addEventListener('change', handleImportFile);
 
+    // 版本管理事件監聽器
+    document.getElementById('saveNewVersionBtn').addEventListener('click', saveNewVersion);
+
     // 監聽視窗大小變化，自動切換顯示方式
     window.addEventListener('resize', function () {
         const detailContainer = document.getElementById('promptDetailContainer');
@@ -2217,19 +2442,209 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         // 處理設定面板的響應式切換
-        if (!settingsContainer.classList.contains('d-none')) {
+        if (settingsContainer && !settingsContainer.classList.contains('d-none')) {
             const isDesktop = window.innerWidth >= 768;
 
             if (!isDesktop) {
                 // 從桌面版切換到手機版，關閉設定面板並開啟 modal
                 console.log('視窗縮小，關閉設定面板並開啟 modal');
-                closeSettingsDetailPanel();
-                const modal = new bootstrap.Modal(document.getElementById('settingsModal'));
-                modal.show();
+                if (typeof closeSettingsDetailPanel === 'function') {
+                    closeSettingsDetailPanel();
+                }
+                const settingsModal = document.getElementById('settingsModal');
+                if (settingsModal) {
+                    const modal = new bootstrap.Modal(settingsModal);
+                    modal.show();
+                }
             }
         }
     });
 });
+
+// =============== 資料管理功能 ===============
+
+// 綁定資料管理面板事件
+function bindDataManagementEvents() {
+    console.log('=== bindDataManagementEvents 開始 ===');
+
+    // 清除 customPrompts 按鈕
+    const clearCustomPromptsBtn = document.getElementById('clearCustomPromptsBtn');
+    if (clearCustomPromptsBtn) {
+        clearCustomPromptsBtn.addEventListener('click', function () {
+            if (confirm('確定要清除所有自訂提示詞 (customPrompts) 嗎？\n\n此操作將永久刪除所有自訂提示詞資料，無法復原！')) {
+                clearCustomPrompts();
+            }
+        });
+    }
+
+    // 清除 customPromptData 按鈕
+    const clearCustomPromptDataBtn = document.getElementById('clearCustomPromptDataBtn');
+    if (clearCustomPromptDataBtn) {
+        clearCustomPromptDataBtn.addEventListener('click', function () {
+            if (confirm('確定要清除所有自訂資料 (customPromptData) 嗎？\n\n此操作將永久刪除所有自訂版本和修改，無法復原！')) {
+                clearCustomPromptData();
+            }
+        });
+    }
+
+    // 清除個人標籤按鈕
+    const clearPersonalTagsBtn = document.getElementById('clearPersonalTagsBtn');
+    if (clearPersonalTagsBtn) {
+        clearPersonalTagsBtn.addEventListener('click', function () {
+            if (confirm('確定要清除所有個人標籤嗎？\n\n此操作將永久刪除所有個人標籤，無法復原！')) {
+                clearPersonalTags();
+            }
+        });
+    }
+
+    // 清除所有資料按鈕
+    const clearAllDataBtn = document.getElementById('clearAllDataBtn');
+    if (clearAllDataBtn) {
+        clearAllDataBtn.addEventListener('click', function () {
+            if (confirm('⚠️ 警告：確定要清除所有資料嗎？\n\n此操作將永久刪除：\n• 所有自訂提示詞\n• 所有自訂版本\n• 所有個人標籤\n• 所有個人設定\n\n此操作無法復原！')) {
+                if (confirm('最後確認：您真的要清除所有資料嗎？\n\n請再次確認您了解此操作的後果！')) {
+                    clearAllData();
+                }
+            }
+        });
+    }
+
+    // 同步資料按鈕
+    const syncDataBtn = document.getElementById('syncDataBtn');
+    if (syncDataBtn) {
+        syncDataBtn.addEventListener('click', function () {
+            syncDataConsistency();
+            loadDataManagementInfo(); // 重新載入資訊
+            alert('資料同步完成！');
+        });
+    }
+
+    // 驗證資料按鈕
+    const verifyDataBtn = document.getElementById('verifyDataBtn');
+    if (verifyDataBtn) {
+        verifyDataBtn.addEventListener('click', function () {
+            verifyLocalStorageVersions();
+            alert('資料驗證完成，請查看開發者工具 Console！');
+        });
+    }
+
+    // 統一資料結構按鈕
+    const unifyDataStructureBtn = document.getElementById('unifyDataStructureBtn');
+    if (unifyDataStructureBtn) {
+        unifyDataStructureBtn.addEventListener('click', function () {
+            if (confirm('確定要統一資料結構嗎？\n\n此操作將：\n• 將 customPrompts 的資料遷移到 customPromptData\n• 刪除 customPrompts 的冗餘資料\n• 統一使用 customPromptData 結構\n\n建議在操作前先備份資料！')) {
+                unifyDataStructure();
+            }
+        });
+    }
+
+    // 檢查資料冗餘按鈕
+    const checkDataRedundancyBtn = document.getElementById('checkDataRedundancyBtn');
+    if (checkDataRedundancyBtn) {
+        checkDataRedundancyBtn.addEventListener('click', function () {
+            checkDataRedundancy();
+        });
+    }
+
+    console.log('=== bindDataManagementEvents 完成 ===');
+}
+
+// 載入資料管理資訊
+function loadDataManagementInfo() {
+    console.log('=== loadDataManagementInfo 開始 ===');
+
+    try {
+        // 獲取各種資料的數量
+        const customPrompts = JSON.parse(localStorage.getItem('customPrompts') || '{}');
+        const customPromptData = JSON.parse(localStorage.getItem('customPromptData') || '{}');
+        const personalTags = JSON.parse(localStorage.getItem('personalTags') || '[]');
+        const allTags = JSON.parse(localStorage.getItem('allTags') || '[]');
+
+        // 更新顯示
+        const customPromptsCount = document.getElementById('customPromptsCount');
+        const customPromptDataCount = document.getElementById('customPromptDataCount');
+        const personalTagsCount = document.getElementById('personalTagsCount');
+        const allTagsCount = document.getElementById('allTagsCount');
+
+        if (customPromptsCount) {
+            customPromptsCount.textContent = `${Object.keys(customPrompts).length} 個項目`;
+        }
+
+        if (customPromptDataCount) {
+            customPromptDataCount.textContent = `${Object.keys(customPromptData).length} 個項目`;
+        }
+
+        if (personalTagsCount) {
+            personalTagsCount.textContent = `${personalTags.length} 個標籤`;
+        }
+
+        if (allTagsCount) {
+            allTagsCount.textContent = `${allTags.length} 個標籤`;
+        }
+
+    } catch (e) {
+        console.error('載入資料管理資訊失敗:', e);
+    }
+
+    console.log('=== loadDataManagementInfo 完成 ===');
+}
+
+// 清除函數
+function clearCustomPrompts() {
+    localStorage.removeItem('customPrompts');
+    customPrompts = {};
+    console.log('✅ customPrompts 已清除');
+    loadDataManagementInfo();
+    loadCards(); // 重新載入卡片
+    alert('自訂提示詞已清除！');
+}
+
+function clearCustomPromptData() {
+    localStorage.removeItem('customPromptData');
+    console.log('✅ customPromptData 已清除');
+    loadDataManagementInfo();
+    loadCards(); // 重新載入卡片
+    alert('自訂資料已清除！');
+}
+
+function clearPersonalTags() {
+    localStorage.removeItem('personalTags');
+    personalTags = [];
+    console.log('✅ personalTags 已清除');
+    loadDataManagementInfo();
+    alert('個人標籤已清除！');
+}
+
+function clearAllData() {
+    // 清除所有 localStorage 項目
+    const keysToRemove = [
+        'customPrompts',
+        'customPromptData',
+        'personalTags',
+        'allTags',
+        'customVersions',
+        'modifiedPrompts'
+    ];
+
+    keysToRemove.forEach(key => {
+        localStorage.removeItem(key);
+    });
+
+    // 重置全域變數
+    customPrompts = {};
+    personalTags = [];
+    allTags = ['使用中', 'Gemini 生成']; // 恢復預設標籤
+
+    console.log('✅ 所有資料已清除');
+    loadDataManagementInfo();
+    loadCards(); // 重新載入卡片
+    alert('所有資料已清除！頁面將重新載入。');
+
+    // 重新載入頁面以確保狀態完全重置
+    setTimeout(() => {
+        window.location.reload();
+    }, 1000);
+}
 
 // =============== 標籤管理功能 ===============
 
@@ -2266,6 +2681,11 @@ function openTagManagementDetailPanel() {
 
     // 在設定面板中顯示標籤管理內容
     const settingsContainer = document.getElementById('settingsDetailContainer');
+
+    if (!settingsContainer) {
+        console.warn('settingsDetailContainer 元素不存在，無法顯示標籤管理面板');
+        return;
+    }
 
     // 創建標籤管理的 HTML 內容
     const tagManagementHTML = `
@@ -2575,12 +2995,12 @@ function loadGlobalTags() {
     const container = document.getElementById('globalTagsList');
     container.innerHTML = '';
 
-    if (tagOrder.length === 0) {
+    if (allTags.length === 0) {
         container.innerHTML = '<div class="text-muted">沒有全域標籤</div>';
         return;
     }
 
-    tagOrder.forEach(tag => {
+    allTags.forEach(tag => {
         const tagElement = createGlobalTagElement(tag);
         container.appendChild(tagElement);
     });
@@ -2699,27 +3119,46 @@ function getTagUsageCount(tagName) {
     return count;
 }
 
+// 綁定標籤編輯相關事件（頁面載入時立即綁定）
+function bindTagEditEvents() {
+    // 編輯標籤 Modal 事件
+    const saveEditTagBtn = document.getElementById('saveEditTagBtn');
+    const confirmDeleteTagBtn = document.getElementById('confirmDeleteTagBtn');
+
+    if (saveEditTagBtn) {
+        saveEditTagBtn.onclick = saveEditTag;
+    }
+
+    if (confirmDeleteTagBtn) {
+        confirmDeleteTagBtn.onclick = confirmDeleteTag;
+    }
+}
+
 // 綁定標籤管理事件
 function bindTagManagementEvents() {
     // 新增標籤按鈕
     const addTagBtn = document.getElementById('addTagBtn');
     const newTagInput = document.getElementById('newTagInput');
 
-    addTagBtn.onclick = addNewTag;
-    newTagInput.onkeypress = function (e) {
-        if (e.key === 'Enter') {
-            addNewTag();
-        }
-    };
+    if (addTagBtn) {
+        addTagBtn.onclick = addNewTag;
+    }
+
+    if (newTagInput) {
+        newTagInput.onkeypress = function (e) {
+            if (e.key === 'Enter') {
+                addNewTag();
+            }
+        };
+    }
 
     // 清理未使用標籤按鈕
-    document.getElementById('cleanUnusedTagsBtn').onclick = cleanUnusedTags;
+    const cleanUnusedTagsBtn = document.getElementById('cleanUnusedTagsBtn');
+    if (cleanUnusedTagsBtn) {
+        cleanUnusedTagsBtn.onclick = cleanUnusedTags;
+    }
 
-    // 編輯標籤 Modal 事件
-    document.getElementById('saveEditTagBtn').onclick = saveEditTag;
-
-    // 刪除標籤 Modal 事件
-    document.getElementById('confirmDeleteTagBtn').onclick = confirmDeleteTag;
+    // 標籤編輯事件已經在 bindTagEditEvents() 中綁定
 }
 
 // 新增標籤
@@ -2733,7 +3172,7 @@ function addNewTag() {
     }
 
     // 檢查是否重複
-    if (tagOrder.includes(tagName) || personalTags.includes(tagName)) {
+    if (allTags.includes(tagName) || personalTags.includes(tagName)) {
         alert('標籤名稱已存在');
         return;
     }
@@ -2770,56 +3209,81 @@ function editTag(oldTagName) {
 
 // 儲存編輯的標籤
 function saveEditTag() {
-    const modal = document.getElementById('editTagModal');
-    const oldTagName = modal.dataset.currentTag;
-    const newTagName = document.getElementById('editTagInput').value.trim();
+    console.log('=== saveEditTag 開始 ===');
 
-    if (!newTagName) {
-        alert('標籤名稱不可為空');
-        return;
-    }
+    try {
+        const modal = document.getElementById('editTagModal');
+        const oldTagName = modal.dataset.currentTag;
+        const newTagName = document.getElementById('editTagInput').value.trim();
 
-    if (newTagName === oldTagName) {
-        // 沒有變更，直接關閉
+        console.log('舊標籤名稱:', oldTagName);
+        console.log('新標籤名稱:', newTagName);
+        console.log('當前 allTags:', allTags);
+
+        if (!newTagName) {
+            alert('標籤名稱不可為空');
+            return;
+        }
+
+        if (newTagName === oldTagName) {
+            // 沒有變更，直接關閉
+            console.log('標籤名稱沒有變更，關閉 Modal');
+            bootstrap.Modal.getInstance(modal).hide();
+            return;
+        }
+
+        // 檢查新名稱是否重複
+        if (allTags.includes(newTagName)) {
+            alert('標籤名稱已存在');
+            console.log('❌ 標籤名稱重複');
+            return;
+        }
+
+        // 更新統一標籤陣列
+        const tagIndex = allTags.indexOf(oldTagName);
+        console.log('舊標籤在陣列中的索引:', tagIndex);
+
+        if (tagIndex !== -1) {
+            allTags[tagIndex] = newTagName;
+            console.log('✅ 已更新統一標籤陣列:', allTags);
+        } else {
+            console.log('⚠️ 在 allTags 中找不到舊標籤，直接新增新標籤');
+            allTags.push(newTagName);
+        }
+
+        // 更新使用此標籤的提示詞
+        console.log('開始更新使用此標籤的提示詞...');
+        updatePromptsWithTag(oldTagName, newTagName);
+
+        // 儲存變更
+        console.log('儲存變更到 localStorage...');
+        savePersonalSettings();
+
+        // 重新載入標籤列表和卡片
+        console.log('重新載入標籤列表和卡片...');
+        updateAllTagSelectors();
+        loadCards();
+
+        // 如果標籤管理右側面板處於活動狀態，也要重新載入面板資料
+        if (window.innerWidth >= 768 &&
+            document.getElementById('promptDetailContainer').style.display !== 'none' &&
+            document.getElementById('promptDetailContainer').querySelector('h5')?.textContent.includes('標籤管理')) {
+            console.log('✅ 重新載入標籤管理右側面板資料');
+            loadTagManagementDetailData();
+        }
+
+        // 關閉 Modal
         bootstrap.Modal.getInstance(modal).hide();
-        return;
+
+        console.log('✅ 標籤重新命名成功:', oldTagName, '->', newTagName);
+        alert('標籤已成功更新！');
+
+    } catch (error) {
+        console.error('❌ saveEditTag 發生錯誤:', error);
+        alert('儲存標籤時發生錯誤: ' + error.message);
     }
 
-    // 檢查新名稱是否重複
-    if (allTags.includes(newTagName)) {
-        alert('標籤名稱已存在');
-        return;
-    }
-
-    // 更新統一標籤陣列
-    const tagIndex = allTags.indexOf(oldTagName);
-    if (tagIndex !== -1) {
-        allTags[tagIndex] = newTagName;
-        console.log('✅ 已更新統一標籤陣列');
-    }
-
-    // 更新使用此標籤的提示詞
-    updatePromptsWithTag(oldTagName, newTagName);
-
-    // 儲存變更
-    savePersonalSettings();
-
-    // 重新載入標籤列表和卡片
-    updateAllTagSelectors();
-    loadCards();
-
-    // 如果標籤管理右側面板處於活動狀態，也要重新載入面板資料
-    if (window.innerWidth >= 768 &&
-        document.getElementById('promptDetailContainer').style.display !== 'none' &&
-        document.getElementById('promptDetailContainer').querySelector('h5')?.textContent.includes('標籤管理')) {
-        console.log('✅ 重新載入標籤管理右側面板資料');
-        loadTagManagementDetailData();
-    }
-
-    // 關閉 Modal
-    bootstrap.Modal.getInstance(modal).hide();
-
-    console.log('標籤重新命名:', oldTagName, '->', newTagName);
+    console.log('=== saveEditTag 完成 ===');
 }
 
 // 更新使用指定標籤的提示詞
@@ -3022,6 +3486,716 @@ window.deleteTag = deleteTag;
 window.moveTagUp = moveTagUp;
 window.moveTagDown = moveTagDown;
 
+// =============== 版本管理功能 ===============
+
+// 開啟新增版本 Modal
+function openAddVersionModal() {
+    console.log('[VERSION] 開啟新增版本 Modal');
+
+    const detailContainer = document.getElementById('promptDetailContainer');
+    const currentPromptId = detailContainer.dataset.currentPromptId;
+
+    if (!currentPromptId) {
+        console.error('[VERSION] 錯誤: 無法找到當前提示詞 ID');
+        return;
+    }
+
+    console.log(`[VERSION] 當前提示詞 ID: ${currentPromptId}`);
+
+    // 獲取當前提示詞資料
+    const promptData = getPromptData(currentPromptId);
+    if (!promptData) {
+        console.error('[VERSION] 錯誤: 無法找到提示詞資料');
+        return;
+    }
+
+    // 檢查是否為自訂提示詞
+    const isCustomPrompt = customPrompts[currentPromptId] !== undefined;
+    console.log(`[VERSION] 提示詞類型: ${isCustomPrompt ? '自訂提示詞' : '原始提示詞'}`);
+
+    // 獲取所有版本資訊
+    const allVersions = getAllVersionsForPrompt(currentPromptId, isCustomPrompt);
+    console.log(`[VERSION] 現有版本: ${allVersions.join(', ')}`);
+
+    // 生成新版本號
+    const newVersionNumber = generateNextVersionNumber(allVersions);
+    console.log(`[VERSION] 新版本號: ${newVersionNumber}`);
+
+    // 填充 Modal
+    document.getElementById('newVersionNumber').value = newVersionNumber;
+    document.getElementById('newVersionName').value = '';
+    document.getElementById('newVersionDescription').value = '';
+    document.getElementById('newVersionContent').value = '';
+    document.getElementById('setAsActiveVersion').checked = true;
+
+    // 填充基於版本選擇器
+    const baseVersionSelect = document.getElementById('baseVersionSelect');
+    baseVersionSelect.innerHTML = '';
+
+    allVersions.forEach(version => {
+        const option = document.createElement('option');
+        option.value = version;
+        option.textContent = version;
+        baseVersionSelect.appendChild(option);
+    });
+
+    // 預設選擇當前版本
+    const currentVersion = document.getElementById('detailPromptVersion').value;
+    if (currentVersion) {
+        baseVersionSelect.value = currentVersion;
+        console.log(`[VERSION] 預設基於版本: ${currentVersion}`);
+    }
+
+    // 載入基於版本的內容
+    loadBaseVersionContent(currentPromptId, baseVersionSelect.value, isCustomPrompt);
+
+    // 綁定基於版本選擇器的變更事件
+    baseVersionSelect.onchange = function () {
+        console.log(`[VERSION] 切換基於版本: ${this.value}`);
+        loadBaseVersionContent(currentPromptId, this.value, isCustomPrompt);
+    };
+
+    // 儲存當前提示詞 ID 到 Modal
+    document.getElementById('addVersionModal').dataset.promptId = currentPromptId;
+    document.getElementById('addVersionModal').dataset.isCustomPrompt = isCustomPrompt;
+
+    // 顯示 Modal
+    const modal = new bootstrap.Modal(document.getElementById('addVersionModal'));
+    modal.show();
+}
+
+// 獲取提示詞的所有版本
+function getAllVersionsForPrompt(promptId, isCustomPrompt) {
+    console.log(`[VERSION] 獲取提示詞版本列表: ${promptId} (${isCustomPrompt ? '自訂' : '原始'})`);
+
+    let allVersions = [];
+
+    if (isCustomPrompt) {
+        // 對於自訂提示詞，只從自訂資料中獲取版本
+        const customPrompt = customPrompts[promptId];
+        if (customPrompt) {
+            allVersions = Object.keys(customPrompt).filter(key => key.startsWith('v'));
+            console.log(`[VERSION] 自訂提示詞版本: ${allVersions.join(', ')}`);
+        } else {
+            console.warn(`[VERSION] 警告: 找不到自訂提示詞 ${promptId}`);
+        }
+    } else {
+        // 對於原始提示詞，合併原始版本和自訂版本
+        const originalData = originalYamlData?.prompt?.[promptId];
+        if (originalData) {
+            const originalVersions = Object.keys(originalData).filter(key => key.startsWith('v'));
+            allVersions = [...originalVersions];
+            console.log(`[VERSION] 原始版本: ${originalVersions.join(', ')}`);
+        }
+
+        // 檢查是否有自訂版本
+        try {
+            const allCustomData = JSON.parse(localStorage.getItem('customPromptData') || '{}');
+            const customData = allCustomData[promptId];
+            if (customData?.versions) {
+                const customVersionsList = Object.keys(customData.versions);
+                allVersions = [...new Set([...allVersions, ...customVersionsList])]; // 去重
+                console.log(`[VERSION] 包含自訂版本: ${customVersionsList.join(', ')}`);
+            }
+        } catch (e) {
+            console.error('[VERSION] 錯誤: 解析 localStorage 資料失敗:', e);
+        }
+    }
+
+    const sortedVersions = allVersions.sort();
+    console.log(`[VERSION] 最終版本列表: ${sortedVersions.join(', ')}`);
+    return sortedVersions;
+}// 生成下一個版本號
+function generateNextVersionNumber(existingVersions) {
+    console.log(`[VERSION] 生成下一個版本號`);
+    console.log(`[VERSION] 現有版本: ${existingVersions.join(', ')}`);
+
+    // 從現有版本中找出最大的數字
+    let maxVersionNumber = 0;
+
+    existingVersions.forEach(version => {
+        const match = version.match(/^v(\d+)$/);
+        if (match) {
+            const versionNumber = parseInt(match[1]);
+            console.log(`[VERSION] 解析版本 ${version} -> ${versionNumber}`);
+            if (versionNumber > maxVersionNumber) {
+                maxVersionNumber = versionNumber;
+            }
+        }
+    });
+
+    const nextVersion = `v${maxVersionNumber + 1}`;
+    console.log(`[VERSION] 生成新版本號: ${nextVersion}`);
+    return nextVersion;
+}
+
+// 載入基於版本的內容
+function loadBaseVersionContent(promptId, baseVersion, isCustomPrompt) {
+    console.log(`[VERSION] 載入基礎版本內容: ${promptId} - ${baseVersion} (${isCustomPrompt ? '自訂' : '原始'})`);
+
+    let versionData = null;
+
+    if (isCustomPrompt) {
+        // 對於自訂提示詞
+        const customPrompt = customPrompts[promptId];
+        if (customPrompt && customPrompt[baseVersion]) {
+            versionData = customPrompt[baseVersion];
+            console.log(`[VERSION] 找到自訂提示詞版本資料: ${baseVersion}`);
+        } else {
+            console.warn(`[VERSION] 警告: 找不到自訂提示詞版本 ${baseVersion}`);
+        }
+    } else {
+        // 對於原始提示詞，先檢查自訂版本，再檢查原始版本
+        try {
+            const allCustomData = JSON.parse(localStorage.getItem('customPromptData') || '{}');
+            const customData = allCustomData[promptId];
+            if (customData?.versions?.[baseVersion]) {
+                versionData = customData.versions[baseVersion];
+                console.log(`[VERSION] 找到自訂版本資料: ${baseVersion}`);
+            }
+        } catch (e) {
+            console.error('[VERSION] 錯誤: 解析 localStorage 資料失敗:', e);
+        }
+
+        // 如果沒有自訂版本，使用原始版本
+        if (!versionData) {
+            const originalData = originalYamlData?.prompt?.[promptId];
+            if (originalData && originalData[baseVersion]) {
+                versionData = originalData[baseVersion];
+                console.log(`[VERSION] 找到原始版本資料: ${baseVersion}`);
+            } else {
+                console.warn(`[VERSION] 警告: 找不到原始版本 ${baseVersion}`);
+            }
+        }
+    }
+
+    // 填充內容
+    if (versionData) {
+        document.getElementById('newVersionContent').value = versionData.content || '';
+        console.log(`[VERSION] 基礎版本內容已載入: ${versionData.content ? '有內容' : '空內容'}`);
+    } else {
+        document.getElementById('newVersionContent').value = '';
+        console.log(`[VERSION] 沒有找到版本資料，已清空內容`);
+    }
+}
+
+// 儲存新版本
+function saveNewVersion() {
+    console.log('[VERSION] 開始儲存新版本');
+
+    const modal = document.getElementById('addVersionModal');
+    const promptId = modal.dataset.promptId;
+    const isCustomPrompt = modal.dataset.isCustomPrompt === 'true';
+
+    if (!promptId) {
+        console.error('[VERSION] 錯誤: 無法找到提示詞 ID');
+        return;
+    }
+
+    console.log(`[VERSION] 目標提示詞: ${promptId} (${isCustomPrompt ? '自訂' : '原始'})`);
+
+    // 獲取表單資料
+    const versionNumber = document.getElementById('newVersionNumber').value;
+    const versionName = document.getElementById('newVersionName').value.trim();
+    const versionDescription = document.getElementById('newVersionDescription').value.trim();
+    const versionContent = document.getElementById('newVersionContent').value;
+    const setAsActive = document.getElementById('setAsActiveVersion').checked;
+
+    console.log(`[VERSION] 版本資料: ${versionNumber}, 名稱: "${versionName}", 設為預設: ${setAsActive}`);
+
+    // 驗證必填欄位
+    if (!versionName) {
+        console.error('[VERSION] 錯誤: 版本名稱為空');
+        alert('請輸入版本名稱');
+        return;
+    }
+
+    if (!versionDescription) {
+        console.error('[VERSION] 錯誤: 版本說明為空');
+        alert('請輸入版本說明');
+        return;
+    }
+
+    // 建立新版本資料
+    const newVersionData = {
+        name: versionName,
+        description: versionDescription,
+        content: versionContent
+    };
+
+    console.log(`[VERSION] 新版本資料準備完成`);
+
+    try {
+        if (isCustomPrompt) {
+            console.log('[VERSION] 處理自訂提示詞版本儲存');
+            // 對於自訂提示詞，直接在 customPrompts 中新增版本
+            if (customPrompts[promptId]) {
+                customPrompts[promptId][versionNumber] = newVersionData;
+                console.log(`[VERSION] 自訂提示詞版本已新增: ${versionNumber}`);
+
+                // 如果設為預設版本，更新 metadata
+                if (setAsActive) {
+                    customPrompts[promptId].metadata.activeVersion = versionNumber;
+                    console.log(`[VERSION] 自訂提示詞預設版本已更新: ${versionNumber}`);
+                }
+
+                // 儲存到 localStorage
+                localStorage.setItem('customPrompts', JSON.stringify(customPrompts));
+                console.log('[VERSION] 自訂提示詞已儲存到 localStorage');
+
+                // 同時更新 customPromptData 以保持一致性
+                console.log('[VERSION] 同步更新 customPromptData');
+                const allCustomData = JSON.parse(localStorage.getItem('customPromptData') || '{}');
+
+                if (!allCustomData[promptId]) {
+                    allCustomData[promptId] = {
+                        metadata: {},
+                        versions: {}
+                    };
+                }
+
+                // 同步版本資料
+                allCustomData[promptId].versions[versionNumber] = newVersionData;
+
+                // 同步 metadata
+                if (setAsActive) {
+                    allCustomData[promptId].metadata.activeVersion = versionNumber;
+                }
+
+                // 儲存同步後的 customPromptData
+                localStorage.setItem('customPromptData', JSON.stringify(allCustomData));
+                console.log('[VERSION] customPromptData 同步完成');
+            } else {
+                console.error('[VERSION] 錯誤: 找不到自訂提示詞資料');
+                throw new Error('找不到自訂提示詞資料');
+            }
+        } else {
+            console.log('[VERSION] 處理原始提示詞版本儲存');
+            // 對於原始提示詞，儲存到 customPromptData
+            const allCustomData = JSON.parse(localStorage.getItem('customPromptData') || '{}');
+
+            if (!allCustomData[promptId]) {
+                allCustomData[promptId] = {
+                    metadata: {},
+                    versions: {}
+                };
+                console.log('[VERSION] 建立新的 customPromptData 結構');
+            }
+
+            // 新增版本
+            allCustomData[promptId].versions[versionNumber] = newVersionData;
+            console.log(`[VERSION] 原始提示詞版本已新增: ${versionNumber}`);
+
+            // 如果設為預設版本，更新 metadata
+            if (setAsActive) {
+                allCustomData[promptId].metadata.activeVersion = versionNumber;
+                console.log(`[VERSION] 原始提示詞預設版本已更新: ${versionNumber}`);
+            }
+
+            // 儲存到 localStorage
+            localStorage.setItem('customPromptData', JSON.stringify(allCustomData));
+            console.log('[VERSION] 原始提示詞已儲存到 localStorage');
+        }
+
+        console.log('[VERSION] 版本儲存成功，開始更新 UI');
+
+        // 重新載入當前提示詞的詳情
+        populateDetailForm(promptId, null, isCustomPrompt);
+
+        // 如果設為預設版本，更新版本選擇器並重新載入卡片
+        if (setAsActive) {
+            document.getElementById('detailPromptVersion').value = versionNumber;
+            // 重新載入卡片以反映新的預設版本
+            loadCards();
+            console.log('[VERSION] 卡片已重新載入以反映新預設版本');
+        }
+
+        // 關閉 Modal
+        const modalInstance = bootstrap.Modal.getInstance(modal);
+        modalInstance.hide();
+
+        console.log(`[VERSION] 版本 ${versionNumber} 建立完成`);
+
+        // 驗證儲存結果
+        console.log('[VERSION] === 儲存驗證開始 ===');
+        if (isCustomPrompt) {
+            const savedCustomPrompts = JSON.parse(localStorage.getItem('customPrompts') || '{}');
+            console.log('[VERSION] localStorage中的customPrompts:', savedCustomPrompts);
+            if (savedCustomPrompts[promptId] && savedCustomPrompts[promptId][versionNumber]) {
+                console.log(`[VERSION] ✅ 版本 ${versionNumber} 已成功儲存到 customPrompts`);
+                console.log(`[VERSION] 儲存的版本資料:`, savedCustomPrompts[promptId][versionNumber]);
+            } else {
+                console.error(`[VERSION] ❌ 版本 ${versionNumber} 未正確儲存到 customPrompts`);
+            }
+        } else {
+            const savedCustomData = JSON.parse(localStorage.getItem('customPromptData') || '{}');
+            console.log('[VERSION] localStorage中的customPromptData:', savedCustomData);
+            if (savedCustomData[promptId] && savedCustomData[promptId].versions && savedCustomData[promptId].versions[versionNumber]) {
+                console.log(`[VERSION] ✅ 版本 ${versionNumber} 已成功儲存到 customPromptData`);
+                console.log(`[VERSION] 儲存的版本資料:`, savedCustomData[promptId].versions[versionNumber]);
+            } else {
+                console.error(`[VERSION] ❌ 版本 ${versionNumber} 未正確儲存到 customPromptData`);
+            }
+        }
+        console.log('[VERSION] === 儲存驗證結束 ===');
+
+        // 完整驗證 localStorage 內容
+        verifyLocalStorageVersions();
+        alert(`版本 ${versionNumber} 建立成功！`);
+
+    } catch (error) {
+        console.error('[VERSION] 儲存版本時發生錯誤:', error);
+        alert('儲存版本時發生錯誤：' + error.message);
+    }
+}
+
+// 確認刪除版本
+function confirmDeleteVersion() {
+    const detailContainer = document.getElementById('promptDetailContainer');
+    const currentPromptId = detailContainer.dataset.currentPromptId;
+    const currentVersion = document.getElementById('detailPromptVersion').value;
+
+    console.log(`[VERSION] 確認刪除版本: ${currentPromptId} - ${currentVersion}`);
+
+    if (!currentPromptId || !currentVersion) {
+        console.error('[VERSION] 錯誤: 無法找到當前提示詞 ID 或版本');
+        return;
+    }
+
+    // 檢查是否為 v1 版本
+    if (currentVersion === 'v1') {
+        console.warn(`[VERSION] 警告: 嘗試刪除 v1 版本 - 已阻止`);
+        alert('無法刪除 v1 版本');
+        return;
+    }
+
+    // 檢查是否為自訂提示詞
+    const isCustomPrompt = customPrompts[currentPromptId] !== undefined;
+
+    // 獲取所有版本
+    const allVersions = getAllVersionsForPrompt(currentPromptId, isCustomPrompt);
+
+    // 檢查是否只剩一個版本
+    if (allVersions.length <= 1) {
+        alert('無法刪除最後一個版本');
+        return;
+    }
+
+    // 檢查是否為當前啟用版本
+    let metadata;
+    if (isCustomPrompt) {
+        metadata = customPrompts[currentPromptId].metadata;
+    } else {
+        try {
+            const allCustomData = JSON.parse(localStorage.getItem('customPromptData') || '{}');
+            const customData = allCustomData[currentPromptId];
+            metadata = customData?.metadata || originalYamlData?.prompt?.[currentPromptId]?.metadata;
+        } catch (e) {
+            metadata = originalYamlData?.prompt?.[currentPromptId]?.metadata;
+        }
+    }
+
+    const activeVersion = metadata?.activeVersion || 'v1';
+    const isActiveVersion = currentVersion === activeVersion;
+    console.log(`[VERSION] 版本狀態檢查: 啟用版本=${activeVersion}, 要刪除版本=${currentVersion}, 是否啟用版本=${isActiveVersion}`);
+
+    // 確認對話框
+    let confirmMessage = `確定要刪除版本「${currentVersion}」嗎？\n\n此操作無法復原。`;
+    if (isActiveVersion) {
+        confirmMessage += '\n\n【警告】此版本目前是預設版本，刪除後將自動切換到 v1 版本。';
+    }
+
+    if (!confirm(confirmMessage)) {
+        console.log(`[VERSION] 用戶取消刪除版本 ${currentVersion}`);
+        return;
+    }
+
+    console.log(`[VERSION] 用戶確認刪除版本 ${currentVersion}`);
+    deleteVersion(currentPromptId, currentVersion, isCustomPrompt, isActiveVersion);
+}
+
+// 刪除版本
+function deleteVersion(promptId, versionToDelete, isCustomPrompt, isActiveVersion) {
+    console.log(`[VERSION] 開始刪除版本: ${promptId} - ${versionToDelete} (${isCustomPrompt ? '自訂' : '原始'}, 啟用版本: ${isActiveVersion})`);
+
+    try {
+        if (isCustomPrompt) {
+            // 對於自訂提示詞
+            if (customPrompts[promptId] && customPrompts[promptId][versionToDelete]) {
+                delete customPrompts[promptId][versionToDelete];
+                console.log(`[VERSION] 已從自訂提示詞刪除版本 ${versionToDelete}`);
+
+                // 如果刪除的是啟用版本，切換到 v1
+                if (isActiveVersion) {
+                    customPrompts[promptId].metadata.activeVersion = 'v1';
+                    console.log(`[VERSION] 啟用版本已切換到 v1`);
+                }
+
+                // 儲存到 localStorage
+                localStorage.setItem('customPrompts', JSON.stringify(customPrompts));
+                console.log(`[VERSION] 自訂提示詞資料已儲存到 localStorage`);
+            }
+        } else {
+            // 對於原始提示詞
+            const allCustomData = JSON.parse(localStorage.getItem('customPromptData') || '{}');
+
+            if (allCustomData[promptId]?.versions?.[versionToDelete]) {
+                delete allCustomData[promptId].versions[versionToDelete];
+                console.log(`[VERSION] 已從自訂版本資料刪除版本 ${versionToDelete}`);
+
+                // 如果版本物件為空，刪除整個版本物件
+                if (Object.keys(allCustomData[promptId].versions).length === 0) {
+                    delete allCustomData[promptId].versions;
+                    console.log(`[VERSION] 版本物件已清空，已刪除整個 versions 物件`);
+                }
+
+                // 如果刪除的是啟用版本，切換到 v1
+                if (isActiveVersion) {
+                    if (!allCustomData[promptId].metadata) {
+                        allCustomData[promptId].metadata = {};
+                    }
+                    allCustomData[promptId].metadata.activeVersion = 'v1';
+                    console.log(`[VERSION] 啟用版本已切換到 v1`);
+                }
+
+                // 如果物件完全為空，刪除整個提示詞資料
+                if (!allCustomData[promptId].metadata || Object.keys(allCustomData[promptId].metadata).length === 0) {
+                    if (!allCustomData[promptId].versions || Object.keys(allCustomData[promptId].versions).length === 0) {
+                        delete allCustomData[promptId];
+                        console.log(`[VERSION] 提示詞資料已完全清空，已刪除整個提示詞條目`);
+                    }
+                }
+
+                // 儲存到 localStorage
+                localStorage.setItem('customPromptData', JSON.stringify(allCustomData));
+                console.log(`[VERSION] 自訂提示詞資料已儲存到 localStorage`);
+            }
+        }
+
+        // 重新載入當前提示詞的詳情
+        populateDetailForm(promptId, null, isCustomPrompt);
+        console.log(`[VERSION] 提示詞詳情已重新載入`);
+
+        // 如果刪除的是當前選擇的版本，切換到 v1
+        const versionSelect = document.getElementById('detailPromptVersion');
+        if (versionSelect.value === versionToDelete) {
+            versionSelect.value = 'v1';
+            // 觸發版本切換事件
+            versionSelect.dispatchEvent(new Event('change'));
+            console.log(`[VERSION] 已切換到 v1 版本`);
+        }
+
+        console.log(`[VERSION] 版本刪除完成: ${versionToDelete}`);
+        alert(`版本 ${versionToDelete} 已刪除`);
+
+    } catch (error) {
+        console.error('[VERSION] 錯誤: 刪除版本時發生錯誤:', error);
+        alert('刪除版本時發生錯誤：' + error.message);
+    }
+}
+
+// 設為預設版本
+function setAsActiveVersion() {
+    const detailContainer = document.getElementById('promptDetailContainer');
+    const currentPromptId = detailContainer.dataset.currentPromptId;
+    const selectedVersion = document.getElementById('detailPromptVersion').value;
+
+    console.log(`[VERSION] 設定預設版本: ${currentPromptId} - ${selectedVersion}`);
+
+    if (!currentPromptId || !selectedVersion) {
+        console.error('[VERSION] 錯誤: 無法找到當前提示詞 ID 或版本');
+        return;
+    }
+
+    // 檢查是否為自訂提示詞
+    const isCustomPrompt = customPrompts[currentPromptId] !== undefined;
+    console.log(`[VERSION] 提示詞類型: ${isCustomPrompt ? '自訂' : '原始'}`);
+
+    try {
+        if (isCustomPrompt) {
+            // 對於自訂提示詞
+            if (customPrompts[currentPromptId]) {
+                customPrompts[currentPromptId].metadata.activeVersion = selectedVersion;
+                console.log(`[VERSION] 自訂提示詞預設版本已更新為: ${selectedVersion}`);
+
+                // 儲存到 localStorage
+                localStorage.setItem('customPrompts', JSON.stringify(customPrompts));
+                console.log(`[VERSION] 自訂提示詞資料已儲存到 localStorage`);
+
+                // 同時更新 customPromptData 以保持一致性
+                console.log('[VERSION] 同步更新 customPromptData 的啟用版本');
+                const allCustomData = JSON.parse(localStorage.getItem('customPromptData') || '{}');
+
+                if (!allCustomData[currentPromptId]) {
+                    allCustomData[currentPromptId] = { metadata: {}, versions: {} };
+                }
+
+                if (!allCustomData[currentPromptId].metadata) {
+                    allCustomData[currentPromptId].metadata = {};
+                }
+
+                allCustomData[currentPromptId].metadata.activeVersion = selectedVersion;
+                localStorage.setItem('customPromptData', JSON.stringify(allCustomData));
+                console.log(`[VERSION] customPromptData 啟用版本同步完成`);
+            }
+        } else {
+            // 對於原始提示詞
+            const allCustomData = JSON.parse(localStorage.getItem('customPromptData') || '{}');
+
+            if (!allCustomData[currentPromptId]) {
+                allCustomData[currentPromptId] = { metadata: {}, versions: {} };
+                console.log(`[VERSION] 建立新的自訂資料結構`);
+            }
+
+            if (!allCustomData[currentPromptId].metadata) {
+                allCustomData[currentPromptId].metadata = {};
+            }
+
+            allCustomData[currentPromptId].metadata.activeVersion = selectedVersion;
+            console.log(`[VERSION] 原始提示詞預設版本已更新為: ${selectedVersion}`);
+
+            // 儲存到 localStorage
+            localStorage.setItem('customPromptData', JSON.stringify(allCustomData));
+            console.log(`[VERSION] 自訂提示詞資料已儲存到 localStorage`);
+        }
+
+        // 重新載入卡片以反映變更
+        loadCards();
+        console.log(`[VERSION] 卡片已重新載入以反映版本變更`);
+
+        console.log(`[VERSION] 設定預設版本完成: ${selectedVersion}`);
+        alert(`版本 ${selectedVersion} 已設為預設版本`);
+
+    } catch (error) {
+        console.error('[VERSION] 錯誤: 設定預設版本時發生錯誤:', error);
+        alert('設定預設版本時發生錯誤：' + error.message);
+    }
+}
+
+// =============== 除錯和驗證功能 ===============
+
+// 修復資料一致性問題
+function syncDataConsistency() {
+    console.log('[VERSION] === 開始修復資料一致性 ===');
+
+    try {
+        const customPromptsData = JSON.parse(localStorage.getItem('customPrompts') || '{}');
+        const customPromptData = JSON.parse(localStorage.getItem('customPromptData') || '{}');
+        let hasChanges = false;
+
+        // 以 customPrompts 為準，同步到 customPromptData
+        Object.keys(customPromptsData).forEach(promptId => {
+            const customPromptsItem = customPromptsData[promptId];
+            const customPromptsActiveVersion = customPromptsItem.metadata?.activeVersion || 'v1';
+
+            // 確保 customPromptData 中有對應的條目
+            if (!customPromptData[promptId]) {
+                customPromptData[promptId] = {
+                    metadata: {},
+                    versions: {}
+                };
+            }
+
+            if (!customPromptData[promptId].metadata) {
+                customPromptData[promptId].metadata = {};
+            }
+
+            const customPromptDataActiveVersion = customPromptData[promptId].metadata.activeVersion || 'v1';
+
+            // 如果啟用版本不一致，以 customPrompts 為準
+            if (customPromptsActiveVersion !== customPromptDataActiveVersion) {
+                console.log(`[VERSION] 🔧 修復 ${promptId} 的啟用版本: ${customPromptDataActiveVersion} -> ${customPromptsActiveVersion}`);
+                customPromptData[promptId].metadata.activeVersion = customPromptsActiveVersion;
+                hasChanges = true;
+            }
+
+            // 同步版本資料
+            const customPromptsVersions = Object.keys(customPromptsItem).filter(key => key.startsWith('v'));
+            customPromptsVersions.forEach(version => {
+                if (!customPromptData[promptId].versions[version]) {
+                    console.log(`[VERSION] 🔧 同步版本 ${promptId}:${version} 到 customPromptData`);
+                    customPromptData[promptId].versions[version] = customPromptsItem[version];
+                    hasChanges = true;
+                }
+            });
+        });
+
+        // 如果有變更，儲存 customPromptData
+        if (hasChanges) {
+            localStorage.setItem('customPromptData', JSON.stringify(customPromptData));
+            console.log('[VERSION] ✅ 資料一致性修復完成，已儲存');
+        } else {
+            console.log('[VERSION] ✅ 資料已一致，無需修復');
+        }
+
+    } catch (e) {
+        console.error('[VERSION] 資料一致性修復失敗:', e);
+    }
+
+    console.log('[VERSION] === 資料一致性修復結束 ===');
+}
+
+// 驗證 localStorage 版本資料
+function verifyLocalStorageVersions() {
+    console.log('[VERSION] === localStorage 版本資料驗證 ===');
+
+    // 檢查 customPrompts
+    try {
+        const customPromptsData = JSON.parse(localStorage.getItem('customPrompts') || '{}');
+        console.log('[VERSION] customPrompts 資料:', customPromptsData);
+
+        Object.keys(customPromptsData).forEach(promptId => {
+            const promptData = customPromptsData[promptId];
+            const versions = Object.keys(promptData).filter(key => key.startsWith('v'));
+            if (versions.length > 0) {
+                console.log(`[VERSION] ${promptId} 的版本: ${versions.join(', ')}`);
+                console.log(`[VERSION] ${promptId} 的啟用版本: ${promptData.metadata?.activeVersion || 'v1'}`);
+            }
+        });
+    } catch (e) {
+        console.error('[VERSION] customPrompts 解析錯誤:', e);
+    }
+
+    // 檢查 customPromptData
+    try {
+        const customPromptData = JSON.parse(localStorage.getItem('customPromptData') || '{}');
+        console.log('[VERSION] customPromptData 資料:', customPromptData);
+
+        Object.keys(customPromptData).forEach(promptId => {
+            const promptData = customPromptData[promptId];
+            if (promptData.versions) {
+                const versions = Object.keys(promptData.versions);
+                console.log(`[VERSION] ${promptId} 的自訂版本: ${versions.join(', ')}`);
+                console.log(`[VERSION] ${promptId} 的啟用版本: ${promptData.metadata?.activeVersion || 'v1'}`);
+            }
+        });
+    } catch (e) {
+        console.error('[VERSION] customPromptData 解析錯誤:', e);
+    }
+
+    // 檢查資料一致性
+    console.log('[VERSION] === 資料一致性檢查 ===');
+    try {
+        const customPromptsData = JSON.parse(localStorage.getItem('customPrompts') || '{}');
+        const customPromptData = JSON.parse(localStorage.getItem('customPromptData') || '{}');
+
+        Object.keys(customPromptsData).forEach(promptId => {
+            if (customPromptData[promptId]) {
+                const customPromptsActiveVersion = customPromptsData[promptId].metadata?.activeVersion || 'v1';
+                const customPromptDataActiveVersion = customPromptData[promptId].metadata?.activeVersion || 'v1';
+
+                if (customPromptsActiveVersion !== customPromptDataActiveVersion) {
+                    console.warn(`[VERSION] ⚠️ ${promptId} 的啟用版本不一致: customPrompts=${customPromptsActiveVersion}, customPromptData=${customPromptDataActiveVersion}`);
+                }
+            }
+        });
+    } catch (e) {
+        console.error('[VERSION] 一致性檢查錯誤:', e);
+    }
+
+    console.log('[VERSION] === 驗證結束 ===');
+}
+
 // =============== 匯出資料功能 ===============
 function exportData() {
     try {
@@ -3030,7 +4204,7 @@ function exportData() {
 
         // 加入個人標籤到 tagOrder
         if (personalTags.length > 0) {
-            exportData.metadata.tagOrder = [...tagOrder, ...personalTags];
+            exportData.metadata.tagOrder = [...allTags, ...personalTags];
         }
 
         // 加入自訂提示詞
@@ -3123,7 +4297,7 @@ function handleImportFile(event) {
             if (importedData.metadata && importedData.metadata.tagOrder) {
                 const importedTagOrder = importedData.metadata.tagOrder;
                 // 從匯入的標籤順序中提取不在原始全域標籤中的標籤作為個人標籤
-                personalTags = importedTagOrder.filter(tag => !tagOrder.includes(tag));
+                personalTags = importedTagOrder.filter(tag => !allTags.includes(tag));
             }
 
             // 儲存個人化設定
@@ -3141,4 +4315,172 @@ function handleImportFile(event) {
 
     // 清空檔案輸入，允許重複選擇同一檔案
     event.target.value = '';
+}
+
+// =============== 資料結構統一功能 ===============
+
+// 統一資料結構為 customPromptData
+function unifyDataStructure() {
+    console.log('=== 開始統一資料結構 ===');
+
+    try {
+        const customPrompts = JSON.parse(localStorage.getItem('customPrompts') || '{}');
+        const customPromptData = JSON.parse(localStorage.getItem('customPromptData') || '{}');
+
+        let migratedCount = 0;
+        let duplicateCount = 0;
+
+        // 遷移 customPrompts 到 customPromptData
+        Object.keys(customPrompts).forEach(promptId => {
+            const promptData = customPrompts[promptId];
+
+            if (customPromptData[promptId]) {
+                duplicateCount++;
+                console.log(`⚠️ ${promptId} 已存在於 customPromptData 中，跳過遷移`);
+                return;
+            }
+
+            // 轉換扁平結構到巢狀結構
+            const newPromptData = {
+                metadata: promptData.metadata || {},
+                versions: {}
+            };
+
+            // 將版本資料提取到 versions 物件中
+            Object.keys(promptData).forEach(key => {
+                if (key !== 'metadata' && key.startsWith('v')) {
+                    newPromptData.versions[key] = promptData[key];
+                }
+            });
+
+            customPromptData[promptId] = newPromptData;
+            migratedCount++;
+            console.log(`✅ 已遷移 ${promptId}`);
+        });
+
+        // 儲存更新後的 customPromptData
+        localStorage.setItem('customPromptData', JSON.stringify(customPromptData));
+
+        // 清除 customPrompts（可選）
+        if (migratedCount > 0) {
+            const clearOldData = confirm(
+                `資料遷移完成！\n\n` +
+                `成功遷移：${migratedCount} 個提示詞\n` +
+                `跳過重複：${duplicateCount} 個提示詞\n\n` +
+                `是否要清除舊的 customPrompts 資料？\n` +
+                `（建議清除以避免資料冗餘）`
+            );
+
+            if (clearOldData) {
+                localStorage.removeItem('customPrompts');
+                // 更新全域變數
+                customPrompts = {};
+                console.log('✅ 已清除舊的 customPrompts 資料');
+            }
+        }
+
+        // 重新載入頁面以使用新的資料結構
+        loadDataManagementInfo();
+        loadCards();
+
+        alert(`資料結構統一完成！\n\n遷移：${migratedCount} 個提示詞\n重複：${duplicateCount} 個提示詞`);
+
+    } catch (error) {
+        console.error('統一資料結構時發生錯誤:', error);
+        alert('統一資料結構時發生錯誤: ' + error.message);
+    }
+
+    console.log('=== 統一資料結構完成 ===');
+}
+
+// 檢查資料冗餘
+function checkDataRedundancy() {
+    console.log('=== 開始檢查資料冗餘 ===');
+
+    try {
+        const customPrompts = JSON.parse(localStorage.getItem('customPrompts') || '{}');
+        const customPromptData = JSON.parse(localStorage.getItem('customPromptData') || '{}');
+
+        const customPromptsIds = Object.keys(customPrompts);
+        const customPromptDataIds = Object.keys(customPromptData);
+
+        // 計算重複的 ID
+        const duplicateIds = customPromptsIds.filter(id => customPromptDataIds.includes(id));
+        const onlyInCustomPrompts = customPromptsIds.filter(id => !customPromptDataIds.includes(id));
+        const onlyInCustomPromptData = customPromptDataIds.filter(id => !customPromptsIds.includes(id));
+
+        // 計算儲存空間使用
+        const customPromptsSize = JSON.stringify(customPrompts).length;
+        const customPromptDataSize = JSON.stringify(customPromptData).length;
+        const totalSize = customPromptsSize + customPromptDataSize;
+
+        // 計算詳細的資料差異
+        let inconsistencyCount = 0;
+        duplicateIds.forEach(id => {
+            const prompt1 = customPrompts[id];
+            const prompt2 = customPromptData[id];
+
+            // 檢查 metadata 是否一致
+            if (JSON.stringify(prompt1.metadata) !== JSON.stringify(prompt2.metadata)) {
+                inconsistencyCount++;
+                console.log(`❌ ${id} 的 metadata 不一致`);
+            }
+
+            // 檢查版本資料是否一致
+            const versions1 = {};
+            Object.keys(prompt1).forEach(key => {
+                if (key !== 'metadata' && key.startsWith('v')) {
+                    versions1[key] = prompt1[key];
+                }
+            });
+
+            const versions2 = prompt2.versions || {};
+
+            if (JSON.stringify(versions1) !== JSON.stringify(versions2)) {
+                inconsistencyCount++;
+                console.log(`❌ ${id} 的版本資料不一致`);
+            }
+        });
+
+        // 顯示檢查結果
+        const report = `
+資料冗餘檢查報告
+================
+
+📊 基本統計：
+• customPrompts 項目數：${customPromptsIds.length}
+• customPromptData 項目數：${customPromptDataIds.length}
+• 重複項目數：${duplicateIds.length}
+
+📂 資料分布：
+• 僅在 customPrompts：${onlyInCustomPrompts.length} 個
+• 僅在 customPromptData：${onlyInCustomPromptData.length} 個
+• 兩邊都有：${duplicateIds.length} 個
+
+⚠️ 不一致問題：
+• 資料不一致的項目：${inconsistencyCount} 個
+
+💾 儲存空間：
+• customPrompts 大小：${(customPromptsSize / 1024).toFixed(2)} KB
+• customPromptData 大小：${(customPromptDataSize / 1024).toFixed(2)} KB
+• 總計大小：${(totalSize / 1024).toFixed(2)} KB
+• 預估可節省：${(customPromptsSize / 1024).toFixed(2)} KB（${((customPromptsSize / totalSize) * 100).toFixed(1)}%）
+
+🔧 建議：
+${duplicateIds.length > 0 ? '• 建議統一資料結構以消除冗餘' : '• 目前沒有資料冗餘'}
+${inconsistencyCount > 0 ? '• 建議先修復資料一致性' : '• 資料一致性良好'}
+        `;
+
+        console.log(report);
+        alert('資料冗餘檢查完成！\n\n詳細報告請查看開發者工具 Console。\n\n' +
+            `重複項目：${duplicateIds.length} 個\n` +
+            `不一致問題：${inconsistencyCount} 個\n` +
+            `可節省空間：${(customPromptsSize / 1024).toFixed(2)} KB`);
+
+    } catch (error) {
+        console.error('檢查資料冗餘時發生錯誤:', error);
+        alert('檢查資料冗餘時發生錯誤: ' + error.message);
+    }
+
+    console.log('=== 資料冗餘檢查完成 ===');
 }
