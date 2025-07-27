@@ -2045,23 +2045,54 @@ function createPersonalTagElement(tagName) {
 
 // 計算標籤使用次數
 function getTagUsageCount(tagName) {
+    console.log('=== getTagUsageCount 開始 ===');
+    console.log('查詢標籤使用次數:', tagName);
     let count = 0;
 
     // 統計默認提示詞中的使用次數
+    console.log('🔍 檢查預設提示詞...');
     defaultPrompts.forEach(prompt => {
         const promptData = getPromptData(prompt.id);
         if (promptData && promptData.tag === tagName) {
             count++;
+            console.log(`  ✅ 預設提示詞「${promptData.title}」使用此標籤`);
         }
     });
+    console.log(`預設提示詞中使用次數: ${count}`);
 
     // 統計自訂提示詞中的使用次數
+    console.log('🔍 檢查自訂提示詞...');
+    const customCount = count;
     Object.values(customPrompts).forEach(prompt => {
         if (prompt.metadata && prompt.metadata.tag === tagName) {
             count++;
+            console.log(`  ✅ 自訂提示詞「${prompt.metadata.displayTitle}」使用此標籤`);
         }
     });
+    console.log(`自訂提示詞中使用次數: ${count - customCount}`);
 
+    // 檢查 localStorage 中的其他資料
+    console.log('🔍 檢查 localStorage 中的資料...');
+    try {
+        const customPromptData = JSON.parse(localStorage.getItem('customPromptData') || '{}');
+        const localStorageCount = count;
+        Object.values(customPromptData).forEach(prompt => {
+            if (prompt.metadata && prompt.metadata.tag === tagName && !prompt.metadata.draft) {
+                // 檢查是否已經在 customPrompts 中計算過
+                const promptId = Object.keys(customPromptData).find(id => customPromptData[id] === prompt);
+                if (!customPrompts[promptId]) {
+                    count++;
+                    console.log(`  ✅ localStorage 提示詞「${prompt.metadata.displayTitle}」使用此標籤`);
+                }
+            }
+        });
+        console.log(`localStorage 中額外使用次數: ${count - localStorageCount}`);
+    } catch (e) {
+        console.log('❌ 檢查 localStorage 時發生錯誤:', e);
+    }
+
+    console.log(`📊 標籤「${tagName}」總使用次數: ${count}`);
+    console.log('=== getTagUsageCount 完成 ===');
     return count;
 }
 
@@ -2199,80 +2230,156 @@ function updatePromptsWithTag(oldTag, newTag) {
 
 // 刪除標籤
 function deleteTag(tagName) {
-    const modal = new bootstrap.Modal(document.getElementById('deleteTagModal'));
+    console.log('=== deleteTag 開始 ===');
+    console.log('嘗試刪除標籤:', tagName);
+    
     const usageCount = getTagUsageCount(tagName);
+    console.log('標籤使用次數:', usageCount);
 
+    // 如果標籤還在使用中，直接阻止並顯示訊息
+    if (usageCount > 0) {
+        console.log('❌ 標籤仍在使用中，阻止刪除');
+        alert(`無法刪除標籤「${tagName}」\n\n此標籤仍被 ${usageCount} 個提示詞使用。\n請先將這些提示詞改為其他標籤，或刪除這些提示詞後再嘗試刪除此標籤。`);
+        console.log('=== deleteTag 完成 (刪除被阻止) ===');
+        return;
+    }
+
+    console.log('✅ 標籤未被使用，可以安全刪除，顯示確認對話框');
+    
+    const modal = new bootstrap.Modal(document.getElementById('deleteTagModal'));
+    
     // 設定標籤名稱
     document.getElementById('deleteTagName').textContent = tagName;
 
-    // 顯示使用情況
-    if (usageCount > 0) {
-        document.getElementById('tagUsageCount').textContent = usageCount;
-        document.getElementById('tagUsageInfo').classList.remove('d-none');
-    } else {
-        document.getElementById('tagUsageInfo').classList.add('d-none');
+    // 隱藏使用情況警告（因為已經確認未使用）
+    document.getElementById('tagUsageInfo').classList.add('d-none');
+    
+    // 隱藏警告文字
+    const warningText = document.getElementById('deleteWarningText');
+    if (warningText) {
+        warningText.classList.add('d-none');
     }
+    
+    // 確認按鈕為正常刪除狀態
+    const confirmBtn = document.getElementById('confirmDeleteTagBtn');
+    confirmBtn.className = 'btn btn-danger';
+    confirmBtn.innerHTML = '<i class="bi bi-trash"></i> 確認刪除';
+    
+    console.log('✅ 刪除確認對話框已設定');
 
     // 儲存要刪除的標籤名稱
     document.getElementById('deleteTagModal').dataset.tagToDelete = tagName;
 
     modal.show();
+    console.log('=== deleteTag 完成 ===');
 }
 
 // 確認刪除標籤
 function confirmDeleteTag() {
+    console.log('=== confirmDeleteTag 開始 ===');
     const modal = document.getElementById('deleteTagModal');
     const tagName = modal.dataset.tagToDelete;
+    console.log('確認刪除標籤:', tagName);
+
+    // 由於在 deleteTag 函數中已經檢查過使用次數，這裡可以直接刪除
+    // 但為了安全起見，還是再檢查一次
+    const usageCount = getTagUsageCount(tagName);
+    console.log('最終檢查標籤使用次數:', usageCount);
+
+    if (usageCount > 0) {
+        // 這種情況不應該發生，但為了安全起見還是要檢查
+        console.log('❌ 意外發現標籤仍在使用中，取消刪除');
+        
+        // 關閉確認彈窗
+        bootstrap.Modal.getInstance(modal).hide();
+        
+        // 顯示錯誤訊息
+        setTimeout(() => {
+            alert(`刪除失敗：標籤「${tagName}」仍被 ${usageCount} 個提示詞使用。`);
+        }, 300);
+        
+        console.log('=== confirmDeleteTag 完成 (意外阻止) ===');
+        return;
+    }
+
+    console.log('✅ 確認標籤未被使用，執行刪除');
 
     // 從個人標籤中移除
     const index = personalTags.indexOf(tagName);
     if (index !== -1) {
         personalTags.splice(index, 1);
+        console.log('✅ 已從 personalTags 陣列移除標籤');
+    } else {
+        console.log('⚠️ 標籤不在 personalTags 陣列中');
     }
 
     // 儲存變更
     savePersonalSettings();
+    console.log('✅ 個人設定已儲存');
 
     // 重新載入標籤列表
     loadPersonalTags();
     updateAllTagSelectors();
     loadCards();
+    console.log('✅ 相關界面已更新');
 
     // 關閉 Modal
     bootstrap.Modal.getInstance(modal).hide();
 
-    console.log('刪除標籤:', tagName);
+    console.log('✅ 標籤刪除成功:', tagName);
+    console.log('=== confirmDeleteTag 完成 ===');
 }
 
 // 清理未使用的標籤
 function cleanUnusedTags() {
-    const unusedTags = personalTags.filter(tag => getTagUsageCount(tag) === 0);
+    console.log('=== cleanUnusedTags 開始 ===');
+    console.log('檢查個人標籤數量:', personalTags.length);
+    console.log('個人標籤列表:', personalTags);
+    
+    const unusedTags = personalTags.filter(tag => {
+        const usageCount = getTagUsageCount(tag);
+        console.log(`標籤「${tag}」使用次數:`, usageCount);
+        return usageCount === 0;
+    });
+    
+    console.log('未使用的標籤:', unusedTags);
 
     if (unusedTags.length === 0) {
+        console.log('✅ 沒有未使用的標籤');
         alert('沒有未使用的標籤');
         return;
     }
 
+    console.log(`⚠️ 發現 ${unusedTags.length} 個未使用的標籤`);
     const confirmed = confirm(`確定要刪除 ${unusedTags.length} 個未使用的標籤嗎？\n\n標籤：${unusedTags.join(', ')}`);
 
     if (confirmed) {
+        console.log('✅ 用戶確認刪除，開始批量刪除');
         // 移除未使用的標籤
         unusedTags.forEach(tag => {
             const index = personalTags.indexOf(tag);
             if (index !== -1) {
                 personalTags.splice(index, 1);
+                console.log(`✅ 已刪除標籤: ${tag}`);
             }
         });
 
         // 儲存變更
         savePersonalSettings();
+        console.log('✅ 個人設定已儲存');
 
         // 重新載入標籤列表
         loadPersonalTags();
         updateAllTagSelectors();
+        console.log('✅ 界面已更新');
 
         alert(`已刪除 ${unusedTags.length} 個未使用的標籤`);
+        console.log('✅ 批量刪除完成');
+    } else {
+        console.log('❌ 用戶取消刪除操作');
     }
+    
+    console.log('=== cleanUnusedTags 完成 ===');
 }
 
 // 更新所有標籤選擇器
