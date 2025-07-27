@@ -1,10 +1,11 @@
-let tagOrder = ['使用中', 'Gemini 生成']; // 預設值，會從 YAML 覆蓋
+// 統一的標籤系統
+let allTags = ['使用中', 'Gemini 生成']; // 統一的標籤陣列，預設值會從 YAML 和 localStorage 合併
+
 let defaultPrompts = [];
 let currentEditingPromptId = null; // 追蹤當前編輯的提示詞 ID
 let originalYamlData = null; // 儲存原始 YAML 資料
 
 // 新增功能的全局變量
-let personalTags = []; // 個人標籤
 let customPrompts = {}; // 自訂提示詞
 let customVersions = {}; // 自訂版本
 let modifiedPrompts = {}; // 修改過的提示詞
@@ -19,9 +20,14 @@ async function loadPromptsFromYaml() {
         // 儲存原始 YAML 資料
         originalYamlData = yamlData;
 
-        // 從 YAML 讀取標籤順序
+        // 從 YAML 讀取標籤，合併到統一標籤陣列
         if (yamlData.metadata && yamlData.metadata.tagOrder) {
-            tagOrder = yamlData.metadata.tagOrder;
+            // 將 YAML 中的標籤加入到 allTags，避免重複
+            yamlData.metadata.tagOrder.forEach(tag => {
+                if (!allTags.includes(tag)) {
+                    allTags.push(tag);
+                }
+            });
         }
 
         // 轉換 YAML 資料為應用程式格式
@@ -339,9 +345,7 @@ async function loadCards() {
         return acc;
     }, {});
 
-    // 合併個人標籤到顯示順序
-    const allTags = [...tagOrder, ...personalTags.filter(tag => !tagOrder.includes(tag))];
-
+    // 使用統一的標籤陣列來顯示
     allTags.forEach(tag => {
         if (promptsByTag[tag]) {
             const tagHeader = document.createElement('h2');
@@ -391,10 +395,26 @@ async function loadCards() {
 // 開啟新增提示詞對話框
 function loadPersonalSettings() {
     try {
-        // 載入個人標籤
-        const storedPersonalTags = localStorage.getItem('personalTags');
-        if (storedPersonalTags) {
-            personalTags = JSON.parse(storedPersonalTags);
+        // 載入統一標籤陣列（優先使用，保持順序）
+        const storedAllTags = localStorage.getItem('allTags');
+        if (storedAllTags) {
+            const loadedTags = JSON.parse(storedAllTags);
+            console.log('從 localStorage 載入標籤順序:', loadedTags);
+            // 直接替換 allTags 以保持順序
+            allTags.splice(0, allTags.length, ...loadedTags);
+        } else {
+            // 如果沒有儲存的統一標籤陣列，則從個人標籤載入（向後相容）
+            const storedPersonalTags = localStorage.getItem('personalTags');
+            if (storedPersonalTags) {
+                const personalTags = JSON.parse(storedPersonalTags);
+                console.log('從舊版 personalTags 載入標籤:', personalTags);
+                // 將個人標籤合併到 allTags，避免重複
+                personalTags.forEach(tag => {
+                    if (!allTags.includes(tag)) {
+                        allTags.push(tag);
+                    }
+                });
+            }
         }
 
         // 載入自訂提示詞
@@ -472,7 +492,14 @@ function loadPersonalSettings() {
 // 儲存個人化設定
 function savePersonalSettings() {
     try {
-        localStorage.setItem('personalTags', JSON.stringify(personalTags));
+        // 儲存統一標籤陣列（保持順序）
+        localStorage.setItem('allTags', JSON.stringify(allTags));
+        console.log('儲存標籤順序到 localStorage:', allTags);
+
+        // 為了向後相容，暫時保留個人標籤的儲存
+        // TODO: 未來版本可以移除這行
+        localStorage.setItem('personalTags', JSON.stringify([]));
+
         localStorage.setItem('customPrompts', JSON.stringify(customPrompts));
         localStorage.setItem('customVersions', JSON.stringify(customVersions));
         localStorage.setItem('modifiedPrompts', JSON.stringify(modifiedPrompts));
@@ -527,14 +554,14 @@ function openAddPromptForm() {
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="detailNewPromptId" class="form-label">提示詞 ID <span class="text-danger">*</span>：</label>
+                                <label for="detailNewPromptId" class="form-label">提示詞 ID：</label>
                                 <input type="text" class="form-control" id="detailNewPromptId" placeholder="例：my-custom-prompt" required>
                                 <div class="form-text">只能包含小寫英文字母、數字和連字符</div>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="detailNewPromptDisplayTitle" class="form-label">顯示標題 <span class="text-danger">*</span>：</label>
+                                <label for="detailNewPromptDisplayTitle" class="form-label">顯示標題：</label>
                                 <input type="text" class="form-control" id="detailNewPromptDisplayTitle" placeholder="例：我的自訂提示詞" required>
                             </div>
                         </div>
@@ -542,13 +569,13 @@ function openAddPromptForm() {
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="detailNewPromptAuthor" class="form-label">作者 <span class="text-danger">*</span>：</label>
+                                <label for="detailNewPromptAuthor" class="form-label">作者：</label>
                                 <input type="text" class="form-control" id="detailNewPromptAuthor" placeholder="例：陳重年" required>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="detailNewPromptTag" class="form-label">標籤 <span class="text-danger">*</span>：</label>
+                                <label for="detailNewPromptTag" class="form-label">標籤：</label>
                                 <select class="form-select" id="detailNewPromptTag" required>
                                     <option value="">請選擇標籤</option>
                                 </select>
@@ -560,7 +587,7 @@ function openAddPromptForm() {
                         <input type="text" class="form-control" id="detailNewPromptDescription" value="初版">
                     </div>
                     <div class="mb-3">
-                        <label for="detailNewPromptContent" class="form-label">內容 <span class="text-danger">*</span>：</label>
+                        <label for="detailNewPromptContent" class="form-label">內容：</label>
                         <textarea class="form-control" id="detailNewPromptContent" rows="8" placeholder="請在這裡輸入您的提示詞內容..." required></textarea>
                     </div>
                 </form>
@@ -617,6 +644,279 @@ function closeAddPromptForm() {
     detailContainer.removeAttribute('data-current-mode');
 }
 
+// ============ 統一的詳細面板管理系統 ============
+
+// 面板內容模板
+const detailTemplates = {
+    'settings': {
+        title: '設定',
+        icon: 'bi-gear',
+        content: `
+            <div class="d-grid gap-3">
+                <button type="button" class="btn btn-dark btn-lg" id="manageTagsDetailBtn">
+                    <i class="bi bi-tags"></i> 管理標籤
+                </button>
+                <button type="button" class="btn btn-dark btn-lg" id="exportDataDetailBtn">
+                    <i class="bi bi-download"></i> 匯出資料
+                </button>
+                <button type="button" class="btn btn-dark btn-lg" id="importDataDetailBtn">
+                    <i class="bi bi-upload"></i> 匯入資料
+                </button>
+                <button type="button" class="btn btn-dark btn-lg" id="aboutDetailBtn">
+                    <i class="bi bi-info-circle"></i> 關於
+                </button>
+            </div>
+        `
+    },
+    'tag-management': {
+        title: '標籤管理',
+        icon: 'bi-tags',
+        content: `
+            <!-- 新增標籤區域 -->
+            <div class="mb-4">
+                <h6 class="fw-bold mb-3">新增標籤</h6>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="newTagDetailInput" placeholder="輸入新標籤名稱">
+                    <button class="btn btn-dark" type="button" id="addTagDetailBtn">
+                        <i class="bi bi-plus"></i> 新增
+                    </button>
+                </div>
+                <div class="form-text">標籤名稱不可重複，不可為空</div>
+            </div>
+
+            <!-- 標籤列表區域 -->
+            <div class="mb-3">
+                <h6 class="fw-bold mb-3">標籤列表</h6>
+
+                <!-- 所有標籤 -->
+                <div class="mb-3">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-tags me-2"></i>
+                            <span class="fw-semibold">所有標籤</span>
+                        </div>
+                        <div>
+                            <button class="btn btn-dark" id="cleanUnusedTagsDetailBtn">
+                                <i class="bi bi-trash"></i> 清理未使用
+                            </button>
+                        </div>
+                    </div>
+                    <div id="allTagsDetailList" class="border rounded p-3">
+                        <!-- 所有標籤將在這裡動態載入 -->
+                    </div>
+                </div>
+            </div>
+        `,
+        footer: `
+            <button type="button" class="btn btn-secondary" id="backToSettingsBtn">
+                <i class="bi bi-arrow-left"></i> 返回設定
+            </button>
+        `
+    }
+};
+
+// 統一開啟詳細面板
+function openDetailPanel(type, data = null) {
+    console.log(`=== openDetailPanel 開始 (${type}) ===`);
+
+    // 檢查螢幕寬度，決定使用 modal 還是右側面板
+    const isDesktop = window.innerWidth >= 768;
+    console.log('是否為桌面模式:', isDesktop);
+
+    if (isDesktop) {
+        // 桌面模式：使用右側面板
+        openDetailPanelDesktop(type, data);
+    } else {
+        // 手機模式：使用 modal
+        openDetailPanelMobile(type, data);
+    }
+
+    console.log(`=== openDetailPanel 完成 (${type}) ===`);
+}
+
+// 桌面模式：開啟右側面板
+function openDetailPanelDesktop(type, data = null) {
+    console.log(`=== openDetailPanelDesktop 開始 (${type}) ===`);
+
+    const template = detailTemplates[type];
+    if (!template) {
+        console.error('未找到對應的面板模板:', type);
+        return;
+    }
+
+    // 切換版面配置
+    const cardsContainer = document.getElementById('promptCardsContainer');
+    const detailContainer = document.getElementById('promptDetailContainer');
+
+    // 生成面板 HTML
+    const panelHTML = `
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center p-4">
+                <h5 class="card-title mb-0"><i class="${template.icon}"></i> ${template.title}</h5>
+                <button type="button" class="btn-close" id="closeDetailPanelBtn" aria-label="關閉"></button>
+            </div>
+            <div class="card-body">
+                ${template.content}
+            </div>
+            ${template.footer ? `<div class="card-footer">${template.footer}</div>` : ''}
+        </div>
+    `;
+
+    // 設定面板內容
+    detailContainer.innerHTML = panelHTML;
+
+    // 更新版面配置
+    cardsContainer.className = 'col-3';
+    detailContainer.className = 'col-9';
+
+    // 綁定對應的事件
+    bindDetailEvents(type, data);
+
+    console.log(`✅ ${template.title}面板已開啟`);
+    console.log(`=== openDetailPanelDesktop 完成 (${type}) ===`);
+}
+
+// 手機模式：開啟 Modal
+function openDetailPanelMobile(type, data = null) {
+    console.log(`=== openDetailPanelMobile 開始 (${type}) ===`);
+
+    // 根據類型開啟對應的 Modal
+    let modalId = '';
+    switch (type) {
+        case 'settings':
+            modalId = 'settingsModal';
+            break;
+        case 'tag-management':
+            modalId = 'tagManagementModal';
+            break;
+        default:
+            console.error('未支援的手機模式面板類型:', type);
+            return;
+    }
+
+    const modal = new bootstrap.Modal(document.getElementById(modalId));
+    modal.show();
+
+    console.log(`=== openDetailPanelMobile 完成 (${type}) ===`);
+}
+
+// 統一關閉詳細面板
+function closeDetailPanel() {
+    console.log('=== closeDetailPanel 開始 ===');
+
+    const cardsContainer = document.getElementById('promptCardsContainer');
+    const detailContainer = document.getElementById('promptDetailContainer');
+
+    // 還原版面配置
+    cardsContainer.className = 'col-12';
+    detailContainer.className = 'col-9 d-none';
+    detailContainer.innerHTML = '';
+
+    console.log('✅ 詳細面板已關閉');
+    console.log('=== closeDetailPanel 完成 ===');
+}
+
+// 綁定對應類型的事件
+function bindDetailEvents(type, data = null) {
+    console.log(`=== bindDetailEvents 開始 (${type}) ===`);
+
+    // 統一綁定關閉按鈕事件
+    const closeBtn = document.getElementById('closeDetailPanelBtn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeDetailPanel);
+        console.log('✅ 綁定關閉按鈕事件');
+    }
+
+    // 根據類型綁定特定事件
+    switch (type) {
+        case 'settings':
+            bindSettingsDetailEvents();
+            break;
+        case 'tag-management':
+            bindTagManagementDetailEvents();
+            loadTagManagementDetailData();
+            break;
+    }
+
+    console.log(`=== bindDetailEvents 完成 (${type}) ===`);
+}
+
+// 綁定設定面板事件
+function bindSettingsDetailEvents() {
+    console.log('=== bindSettingsDetailEvents 開始 ===');
+
+    // 管理標籤按鈕
+    const manageTagsBtn = document.getElementById('manageTagsDetailBtn');
+    if (manageTagsBtn) {
+        manageTagsBtn.addEventListener('click', function () {
+            console.log('點擊管理標籤按鈕');
+            openDetailPanel('tag-management');
+        });
+        console.log('✅ 綁定管理標籤按鈕事件');
+    }
+
+    // 匯出資料按鈕
+    const exportBtn = document.getElementById('exportDataDetailBtn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', function () {
+            console.log('點擊匯出資料按鈕');
+            exportData();
+        });
+        console.log('✅ 綁定匯出資料按鈕事件');
+    }
+
+    // 匯入資料按鈕
+    const importBtn = document.getElementById('importDataDetailBtn');
+    if (importBtn) {
+        importBtn.addEventListener('click', function () {
+            console.log('點擊匯入資料按鈕');
+            document.getElementById('importFileInput').click();
+        });
+        console.log('✅ 綁定匯入資料按鈕事件');
+    }
+
+    // 關於按鈕
+    const aboutBtn = document.getElementById('aboutDetailBtn');
+    if (aboutBtn) {
+        aboutBtn.addEventListener('click', function () {
+            console.log('點擊關於按鈕');
+            showAbout();
+        });
+        console.log('✅ 綁定關於按鈕事件');
+    }
+
+    console.log('=== bindSettingsDetailEvents 完成 ===');
+}
+
+// ============ 舊版設定面板函數（保持向後相容） ============
+
+// 開啟設定面板
+function openSettingsPanel() {
+    console.log('=== openSettingsPanel 開始 ===');
+
+    // 使用統一的面板管理系統
+    openDetailPanel('settings');
+
+    console.log('=== openSettingsPanel 完成 ===');
+}
+
+// 處理匯入點擊
+function handleImportClick() {
+    console.log('觸發匯入資料');
+    document.getElementById('importFileInput').click();
+}
+
+// 處理關於點擊
+function handleAboutClick() {
+    console.log('觸發關於資訊');
+    showAbout();
+}
+
+// 顯示關於資訊
+function showAbout() {
+    alert('提示詞管理系統\n版本: 2.0\n作者: 陳重年 Chen Chung Nien');
+}
+
 // 更新右側表單的標籤選項
 function updateDetailTagOptions() {
     const tagSelect = document.getElementById('detailNewPromptTag');
@@ -629,19 +929,11 @@ function updateDetailTagOptions() {
     // 清空現有選項
     tagSelect.innerHTML = '<option value="">請選擇標籤</option>';
 
-    // 加入全域標籤
-    tagOrder.forEach(tag => {
+    // 使用統一標籤陣列
+    allTags.forEach(tag => {
         const option = document.createElement('option');
         option.value = tag;
         option.textContent = tag;
-        tagSelect.appendChild(option);
-    });
-
-    // 加入個人標籤
-    personalTags.forEach(tag => {
-        const option = document.createElement('option');
-        option.value = tag;
-        option.textContent = `${tag} (個人)`;
         tagSelect.appendChild(option);
     });
 }
@@ -661,19 +953,11 @@ function updateEditTagOptions() {
     // 清空現有選項
     tagSelect.innerHTML = '<option value="">請選擇標籤</option>';
 
-    // 加入全域標籤
-    tagOrder.forEach(tag => {
+    // 使用統一標籤陣列
+    allTags.forEach(tag => {
         const option = document.createElement('option');
         option.value = tag;
         option.textContent = tag;
-        tagSelect.appendChild(option);
-    });
-
-    // 加入個人標籤
-    personalTags.forEach(tag => {
-        const option = document.createElement('option');
-        option.value = tag;
-        option.textContent = `${tag} (個人)`;
         tagSelect.appendChild(option);
     });
 
@@ -760,19 +1044,11 @@ function updateTagOptions() {
     // 清空現有選項
     tagSelect.innerHTML = '<option value="">請選擇標籤</option>';
 
-    // 加入全域標籤
-    tagOrder.forEach(tag => {
+    // 使用統一標籤陣列
+    allTags.forEach(tag => {
         const option = document.createElement('option');
         option.value = tag;
         option.textContent = tag;
-        tagSelect.appendChild(option);
-    });
-
-    // 加入個人標籤
-    personalTags.forEach(tag => {
-        const option = document.createElement('option');
-        option.value = tag;
-        option.textContent = `${tag} (個人)`;
         tagSelect.appendChild(option);
     });
 }
@@ -954,7 +1230,7 @@ function openPromptDetail(promptId) {
             </div>
             <div class="card-footer d-flex justify-content-between">
                 <div>
-                    <button type="button" class="btn btn-danger d-none" id="resetDetailPromptBtn">重置</button>
+                    <button type="button" class="btn btn-dark d-none" id="resetDetailPromptBtn">重置</button>
                 </div>
                 <div>
                     <button type="button" class="btn btn-dark me-2" id="editPromptBtn">編輯</button>
@@ -1888,8 +2164,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 設定按鈕
     document.getElementById('settingsBtn').addEventListener('click', function () {
-        const modal = new bootstrap.Modal(document.getElementById('settingsModal'));
-        modal.show();
+        openSettingsPanel();
     });
 
     // 標題新增按鈕
@@ -1919,6 +2194,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 監聽視窗大小變化，自動切換顯示方式
     window.addEventListener('resize', function () {
         const detailContainer = document.getElementById('promptDetailContainer');
+        const settingsContainer = document.getElementById('settingsDetailContainer');
         const currentPromptId = detailContainer.dataset.currentPromptId;
         const currentMode = detailContainer.dataset.currentMode;
 
@@ -1939,13 +2215,37 @@ document.addEventListener('DOMContentLoaded', async () => {
                 openAddPromptModal();
             }
         }
+
+        // 處理設定面板的響應式切換
+        if (!settingsContainer.classList.contains('d-none')) {
+            const isDesktop = window.innerWidth >= 768;
+
+            if (!isDesktop) {
+                // 從桌面版切換到手機版，關閉設定面板並開啟 modal
+                console.log('視窗縮小，關閉設定面板並開啟 modal');
+                closeSettingsDetailPanel();
+                const modal = new bootstrap.Modal(document.getElementById('settingsModal'));
+                modal.show();
+            }
+        }
     });
 });
 
 // =============== 標籤管理功能 ===============
 
 // 開啟標籤管理 Modal
+// 開啟標籤管理 - 響應式顯示
 function openTagManagementModal() {
+    console.log('=== openTagManagementModal 開始 ===');
+
+    // 使用統一的面板管理系統
+    openDetailPanel('tag-management');
+
+    console.log('=== openTagManagementModal 完成 ===');
+}
+
+// 開啟標籤管理 Modal (手機版)
+function openTagManagementModalView() {
     // 載入標籤資料
     loadTagManagementData();
 
@@ -1958,6 +2258,309 @@ function openTagManagementModal() {
     modalElement.addEventListener('hidden.bs.modal', function () {
         updateAllTagSelectors();
     }, { once: true }); // 只執行一次
+}
+
+// 開啟標籤管理右側面板 (桌面版)
+function openTagManagementDetailPanel() {
+    console.log('=== openTagManagementDetailPanel 開始 ===');
+
+    // 在設定面板中顯示標籤管理內容
+    const settingsContainer = document.getElementById('settingsDetailContainer');
+
+    // 創建標籤管理的 HTML 內容
+    const tagManagementHTML = `
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center p-4">
+                <h5 class="card-title mb-0"><i class="bi bi-tags"></i> 標籤管理</h5>
+                <button type="button" class="btn-close" id="closeTagManagementDetailBtn" aria-label="關閉"></button>
+            </div>
+            <div class="card-body">
+                <!-- 新增標籤區域 -->
+                <div class="mb-4">
+                    <h6 class="fw-bold mb-3">新增標籤</h6>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="newTagDetailInput" placeholder="輸入新標籤名稱">
+                        <button class="btn btn-dark" type="button" id="addTagDetailBtn">
+                            <i class="bi bi-plus"></i> 新增
+                        </button>
+                    </div>
+                    <div class="form-text">標籤名稱不可重複，不可為空</div>
+                </div>
+
+                <!-- 標籤列表區域 -->
+                <div class="mb-3">
+                    <h6 class="fw-bold mb-3">標籤列表</h6>
+
+                    <!-- 全域標籤 -->
+                    <div class="mb-3">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-globe me-2"></i>
+                            <span class="fw-semibold">全域標籤（唯讀）</span>
+                        </div>
+                        <div id="globalTagsDetailList" class="border rounded p-3 bg-dark">
+                            <!-- 全域標籤將在這裡動態載入 -->
+                        </div>
+                    </div>
+
+                    <!-- 個人標籤 -->
+                    <div class="mb-3">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-person me-2"></i>
+                                <span class="fw-semibold">個人標籤</span>
+                            </div>
+                            <div>
+                                <button class="btn btn-dark" id="cleanUnusedTagsDetailBtn">
+                                    <i class="bi bi-trash"></i> 清理未使用
+                                </button>
+                            </div>
+                        </div>
+                        <div id="personalTagsDetailList" class="border rounded p-3">
+                            <!-- 個人標籤將在這裡動態載入 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <button type="button" class="btn btn-secondary" id="backToSettingsBtn">
+                    <i class="bi bi-arrow-left"></i> 返回設定
+                </button>
+            </div>
+        </div>
+    `;
+
+    // 設定標籤管理面板內容
+    settingsContainer.innerHTML = tagManagementHTML;
+
+    // 載入標籤資料到右側面板
+    loadTagManagementDetailData();
+
+    // 綁定右側面板的事件
+    bindTagManagementDetailEvents();
+
+    console.log('✅ 標籤管理面板已開啟');
+    console.log('=== openTagManagementDetailPanel 完成 ===');
+}
+
+// 載入標籤管理右側面板資料
+function loadTagManagementDetailData() {
+    console.log('=== loadTagManagementDetailData 開始 ===');
+    loadAllTagsDetail();
+    console.log('=== loadTagManagementDetailData 完成 ===');
+}
+
+// 載入所有標籤到右側面板
+function loadAllTagsDetail() {
+    const container = document.getElementById('allTagsDetailList');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    if (allTags.length === 0) {
+        container.innerHTML = '<div class="text-muted">沒有標籤</div>';
+        return;
+    }
+
+    allTags.forEach((tag, index) => {
+        const usageCount = getTagUsageCount(tag);
+        const tagElement = document.createElement('div');
+        tagElement.className = 'd-flex justify-content-between align-items-center mb-2 p-2 bg-white rounded border';
+
+        const isUnused = usageCount === 0;
+        const badgeClass = isUnused ? 'bg-dark text-light' : 'bg-dark';
+
+        const canMoveUp = index > 0;
+        const canMoveDown = index < allTags.length - 1;
+
+        tagElement.innerHTML = `
+            <div>
+                <span class="badge ${badgeClass} me-2">${tag}</span>
+                <small class="text-muted">${usageCount} 個提示詞${isUnused ? ' (未使用)' : ''}</small>
+            </div>
+            <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-dark btn-sm ${!canMoveUp ? 'disabled' : ''}" 
+                        onclick="moveTagUp('${tag}')" 
+                        ${!canMoveUp ? 'disabled' : ''} 
+                        title="上移">
+                    <i class="bi bi-arrow-up"></i>
+                </button>
+                <button class="btn btn-outline-dark btn-sm ${!canMoveDown ? 'disabled' : ''}" 
+                        onclick="moveTagDown('${tag}')" 
+                        ${!canMoveDown ? 'disabled' : ''} 
+                        title="下移">
+                    <i class="bi bi-arrow-down"></i>
+                </button>
+                <button class="btn btn-outline-dark btn-sm" onclick="editTagDetail('${tag}')">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-outline-dark btn-sm" onclick="deleteTagDetail('${tag}')">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        `;
+        container.appendChild(tagElement);
+    });
+}// 綁定標籤管理右側面板事件
+function bindTagManagementDetailEvents() {
+    console.log('=== bindTagManagementDetailEvents 開始 ===');
+
+    // 新增標籤按鈕
+    const addTagBtn = document.getElementById('addTagDetailBtn');
+    const newTagInput = document.getElementById('newTagDetailInput');
+
+    if (addTagBtn) {
+        addTagBtn.addEventListener('click', addNewTagFromDetail);
+        console.log('✅ 綁定新增標籤按鈕事件');
+    }
+
+    if (newTagInput) {
+        newTagInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                addNewTagFromDetail();
+            }
+        });
+        console.log('✅ 綁定新增標籤輸入框事件');
+    }
+
+    // 清理未使用標籤按鈕
+    const cleanBtn = document.getElementById('cleanUnusedTagsDetailBtn');
+    if (cleanBtn) {
+        cleanBtn.addEventListener('click', cleanUnusedTags);
+        console.log('✅ 綁定清理未使用標籤按鈕事件');
+    }
+
+    // 返回設定按鈕
+    const backBtn = document.getElementById('backToSettingsBtn');
+    if (backBtn) {
+        backBtn.addEventListener('click', function () {
+            console.log('返回設定面板');
+            openDetailPanel('settings');
+            updateAllTagSelectors(); // 更新標籤選擇器
+        });
+        console.log('✅ 綁定返回設定按鈕事件');
+    }
+
+    // 關閉標籤管理面板按鈕
+    const closeBtn = document.getElementById('closeTagManagementDetailBtn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function () {
+            console.log('關閉標籤管理面板');
+            closeDetailPanel();
+            updateAllTagSelectors(); // 更新標籤選擇器
+        });
+        console.log('✅ 綁定關閉標籤管理按鈕事件');
+    }
+
+    console.log('=== bindTagManagementDetailEvents 完成 ===');
+}
+
+// 從右側面板新增標籤
+function addNewTagFromDetail() {
+    const input = document.getElementById('newTagDetailInput');
+    const tagName = input.value.trim();
+
+    if (!tagName) {
+        alert('請輸入標籤名稱');
+        return;
+    }
+
+    // 檢查是否重複
+    if (allTags.includes(tagName)) {
+        alert('標籤名稱已存在');
+        return;
+    }
+
+    // 新增到統一標籤陣列
+    allTags.push(tagName);
+    console.log('新增標籤:', tagName);
+
+    // 儲存設定變更
+    savePersonalSettings();
+
+    // 重新載入標籤列表
+    loadAllTagsDetail();
+
+    // 更新所有標籤選擇器
+    updateAllTagSelectors();
+
+    // 清空輸入框
+    input.value = '';
+
+    console.log('標籤新增完成:', tagName);
+}// 右側面板編輯標籤
+function editTagDetail(tagName) {
+    console.log('編輯標籤:', tagName);
+    // 使用原有的編輯標籤 modal，因為這是一個簡單的輸入對話框
+    editTag(tagName);
+}
+
+// 右側面板刪除標籤
+function deleteTagDetail(tagName) {
+    console.log('刪除標籤:', tagName);
+    // 使用原有的刪除標籤邏輯
+    deleteTag(tagName);
+}
+
+// 上移標籤
+function moveTagUp(tagName) {
+    console.log('=== moveTagUp 開始 ===');
+    console.log('上移標籤:', tagName);
+
+    const currentIndex = allTags.indexOf(tagName);
+    if (currentIndex <= 0) {
+        console.log('標籤已在最上方，無法上移');
+        return;
+    }
+
+    // 交換位置
+    [allTags[currentIndex - 1], allTags[currentIndex]] = [allTags[currentIndex], allTags[currentIndex - 1]];
+
+    console.log('標籤移動後的順序:', allTags);
+
+    // 儲存設定變更
+    savePersonalSettings();
+
+    // 重新載入標籤列表
+    loadAllTagsDetail();
+
+    // 更新所有標籤選擇器
+    updateAllTagSelectors();
+
+    // 重新載入卡片以反映新的標籤順序
+    loadCards();
+
+    console.log('=== moveTagUp 完成 ===');
+}
+
+// 下移標籤
+function moveTagDown(tagName) {
+    console.log('=== moveTagDown 開始 ===');
+    console.log('下移標籤:', tagName);
+
+    const currentIndex = allTags.indexOf(tagName);
+    if (currentIndex < 0 || currentIndex >= allTags.length - 1) {
+        console.log('標籤已在最下方，無法下移');
+        return;
+    }
+
+    // 交換位置
+    [allTags[currentIndex], allTags[currentIndex + 1]] = [allTags[currentIndex + 1], allTags[currentIndex]];
+
+    console.log('標籤移動後的順序:', allTags);
+
+    // 儲存設定變更
+    savePersonalSettings();
+
+    // 重新載入標籤列表
+    loadAllTagsDetail();
+
+    // 更新所有標籤選擇器
+    updateAllTagSelectors();
+
+    // 重新載入卡片以反映新的標籤順序
+    loadCards();
+
+    console.log('=== moveTagDown 完成 ===');
 }
 
 // 載入標籤管理資料
@@ -2009,7 +2612,7 @@ function createGlobalTagElement(tagName) {
     tagDiv.innerHTML = `
         <i class="bi bi-tag me-1"></i>
         <span>${tagName}</span>
-        <span class="badge bg-light text-dark ms-2">${usageCount}</span>
+        <span class="badge bg-dark text-dark ms-2">${usageCount}</span>
     `;
 
     return tagDiv;
@@ -2018,20 +2621,20 @@ function createGlobalTagElement(tagName) {
 // 建立個人標籤元素
 function createPersonalTagElement(tagName) {
     const tagDiv = document.createElement('div');
-    tagDiv.className = 'badge bg-primary me-2 mb-2 p-2 d-inline-flex align-items-center';
+    tagDiv.className = 'badge bg-dark me-2 mb-2 p-2 d-inline-flex align-items-center';
 
     const usageCount = getTagUsageCount(tagName);
     const isUnused = usageCount === 0;
 
     if (isUnused) {
-        tagDiv.classList.add('bg-warning');
-        tagDiv.classList.remove('bg-primary');
+        tagDiv.classList.add('bg-dark');
+        tagDiv.classList.remove('bg-dark');
     }
 
     tagDiv.innerHTML = `
         <i class="bi bi-tag me-1"></i>
         <span>${tagName}</span>
-        <span class="badge bg-light text-dark ms-2">${usageCount}</span>
+        <span class="badge bg-dark text-dark ms-2">${usageCount}</span>
         <button class="btn btn-sm btn-link text-white p-0 ms-2" onclick="editTag('${tagName}')" title="編輯">
             <i class="bi bi-pencil-square"></i>
         </button>
@@ -2183,15 +2786,16 @@ function saveEditTag() {
     }
 
     // 檢查新名稱是否重複
-    if (tagOrder.includes(newTagName) || personalTags.includes(newTagName)) {
+    if (allTags.includes(newTagName)) {
         alert('標籤名稱已存在');
         return;
     }
 
-    // 更新個人標籤
-    const index = personalTags.indexOf(oldTagName);
-    if (index !== -1) {
-        personalTags[index] = newTagName;
+    // 更新統一標籤陣列
+    const tagIndex = allTags.indexOf(oldTagName);
+    if (tagIndex !== -1) {
+        allTags[tagIndex] = newTagName;
+        console.log('✅ 已更新統一標籤陣列');
     }
 
     // 更新使用此標籤的提示詞
@@ -2201,9 +2805,16 @@ function saveEditTag() {
     savePersonalSettings();
 
     // 重新載入標籤列表和卡片
-    loadPersonalTags();
     updateAllTagSelectors();
     loadCards();
+
+    // 如果標籤管理右側面板處於活動狀態，也要重新載入面板資料
+    if (window.innerWidth >= 768 &&
+        document.getElementById('promptDetailContainer').style.display !== 'none' &&
+        document.getElementById('promptDetailContainer').querySelector('h5')?.textContent.includes('標籤管理')) {
+        console.log('✅ 重新載入標籤管理右側面板資料');
+        loadTagManagementDetailData();
+    }
 
     // 關閉 Modal
     bootstrap.Modal.getInstance(modal).hide();
@@ -2232,7 +2843,7 @@ function updatePromptsWithTag(oldTag, newTag) {
 function deleteTag(tagName) {
     console.log('=== deleteTag 開始 ===');
     console.log('嘗試刪除標籤:', tagName);
-    
+
     const usageCount = getTagUsageCount(tagName);
     console.log('標籤使用次數:', usageCount);
 
@@ -2245,26 +2856,26 @@ function deleteTag(tagName) {
     }
 
     console.log('✅ 標籤未被使用，可以安全刪除，顯示確認對話框');
-    
+
     const modal = new bootstrap.Modal(document.getElementById('deleteTagModal'));
-    
+
     // 設定標籤名稱
     document.getElementById('deleteTagName').textContent = tagName;
 
     // 隱藏使用情況警告（因為已經確認未使用）
     document.getElementById('tagUsageInfo').classList.add('d-none');
-    
+
     // 隱藏警告文字
     const warningText = document.getElementById('deleteWarningText');
     if (warningText) {
         warningText.classList.add('d-none');
     }
-    
+
     // 確認按鈕為正常刪除狀態
     const confirmBtn = document.getElementById('confirmDeleteTagBtn');
-    confirmBtn.className = 'btn btn-danger';
+    confirmBtn.className = 'btn btn-dark';
     confirmBtn.innerHTML = '<i class="bi bi-trash"></i> 確認刪除';
-    
+
     console.log('✅ 刪除確認對話框已設定');
 
     // 儲存要刪除的標籤名稱
@@ -2289,38 +2900,45 @@ function confirmDeleteTag() {
     if (usageCount > 0) {
         // 這種情況不應該發生，但為了安全起見還是要檢查
         console.log('❌ 意外發現標籤仍在使用中，取消刪除');
-        
+
         // 關閉確認彈窗
         bootstrap.Modal.getInstance(modal).hide();
-        
+
         // 顯示錯誤訊息
         setTimeout(() => {
             alert(`刪除失敗：標籤「${tagName}」仍被 ${usageCount} 個提示詞使用。`);
         }, 300);
-        
+
         console.log('=== confirmDeleteTag 完成 (意外阻止) ===');
         return;
     }
 
     console.log('✅ 確認標籤未被使用，執行刪除');
 
-    // 從個人標籤中移除
-    const index = personalTags.indexOf(tagName);
-    if (index !== -1) {
-        personalTags.splice(index, 1);
-        console.log('✅ 已從 personalTags 陣列移除標籤');
+    // 從統一標籤陣列中移除
+    const tagIndex = allTags.indexOf(tagName);
+    if (tagIndex !== -1) {
+        allTags.splice(tagIndex, 1);
+        console.log('✅ 已從 allTags 陣列移除標籤');
+        // 儲存設定變更
+        savePersonalSettings();
+        console.log('✅ 設定已儲存');
     } else {
-        console.log('⚠️ 標籤不在 personalTags 陣列中');
+        console.log('⚠️ 標籤不在 allTags 陣列中');
     }
 
-    // 儲存變更
-    savePersonalSettings();
-    console.log('✅ 個人設定已儲存');
-
     // 重新載入標籤列表
-    loadPersonalTags();
     updateAllTagSelectors();
     loadCards();
+
+    // 如果標籤管理右側面板處於活動狀態，也要重新載入面板資料
+    if (window.innerWidth >= 768 &&
+        document.getElementById('promptDetailContainer').style.display !== 'none' &&
+        document.getElementById('promptDetailContainer').querySelector('h5')?.textContent.includes('標籤管理')) {
+        console.log('✅ 重新載入標籤管理右側面板資料');
+        loadTagManagementDetailData();
+    }
+
     console.log('✅ 相關界面已更新');
 
     // 關閉 Modal
@@ -2333,15 +2951,15 @@ function confirmDeleteTag() {
 // 清理未使用的標籤
 function cleanUnusedTags() {
     console.log('=== cleanUnusedTags 開始 ===');
-    console.log('檢查個人標籤數量:', personalTags.length);
-    console.log('個人標籤列表:', personalTags);
-    
-    const unusedTags = personalTags.filter(tag => {
+    console.log('檢查標籤數量:', allTags.length);
+    console.log('標籤列表:', allTags);
+
+    const unusedTags = allTags.filter(tag => {
         const usageCount = getTagUsageCount(tag);
         console.log(`標籤「${tag}」使用次數:`, usageCount);
         return usageCount === 0;
     });
-    
+
     console.log('未使用的標籤:', unusedTags);
 
     if (unusedTags.length === 0) {
@@ -2357,20 +2975,20 @@ function cleanUnusedTags() {
         console.log('✅ 用戶確認刪除，開始批量刪除');
         // 移除未使用的標籤
         unusedTags.forEach(tag => {
-            const index = personalTags.indexOf(tag);
+            const index = allTags.indexOf(tag);
             if (index !== -1) {
-                personalTags.splice(index, 1);
+                allTags.splice(index, 1);
                 console.log(`✅ 已刪除標籤: ${tag}`);
             }
         });
 
         // 儲存變更
         savePersonalSettings();
-        console.log('✅ 個人設定已儲存');
+        console.log('✅ 設定已儲存');
 
         // 重新載入標籤列表
-        loadPersonalTags();
         updateAllTagSelectors();
+        loadCards();
         console.log('✅ 界面已更新');
 
         alert(`已刪除 ${unusedTags.length} 個未使用的標籤`);
@@ -2378,7 +2996,7 @@ function cleanUnusedTags() {
     } else {
         console.log('❌ 用戶取消刪除操作');
     }
-    
+
     console.log('=== cleanUnusedTags 完成 ===');
 }
 
@@ -2401,6 +3019,8 @@ function updateAllTagSelectors() {
 // 全域函數供 HTML 調用
 window.editTag = editTag;
 window.deleteTag = deleteTag;
+window.moveTagUp = moveTagUp;
+window.moveTagDown = moveTagDown;
 
 // =============== 匯出資料功能 ===============
 function exportData() {
